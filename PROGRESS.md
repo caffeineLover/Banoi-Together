@@ -35,7 +35,7 @@ The broader project vision includes better co-op coordination, shared conversati
 | --- | --- | --- |
 | Original prototype | Loaded in the game; two hooks initially | No successful quest/chat test from that prototype |
 | [`v0.1.0-test.1`](https://github.com/caffeineLover/Banoi-Together/releases/tag/v0.1.0-test.1), diagnostic 2 | Published diagnostic prerelease so B could install | Explicitly skips the mode-0 path used by Passport to Life; downloading it again does not install the correction |
-| `0.1.0-test.2`, diagnostic 3 | The Lost local test passed; preparing a release using that exact tested DLL | B's corrected installation and remote delivery are unverified |
+| [`v0.1.0-test.2`](https://github.com/caffeineLover/Banoi-Together/releases/tag/v0.1.0-test.2), diagnostic 3 | Published; public download contains the exact DLL that passed The Lost on A | B's corrected installation and remote delivery are unverified |
 
 **Tested/installed diagnostic-3 DLL SHA256:**
 
@@ -49,7 +49,7 @@ Original local test.2 ZIP SHA256, **before refreshing the README for the remote 
 C9EAE75B12A27664440F95C340EBE5279D53EE2B7C3675D6A1ECDA9B42D4A1A6
 ```
 
-Release preparation refreshes the README and package version metadata without recompiling or changing the DLL. The release ZIP is `dist/DIDE-CoopQuestActivity-v0.1.0-test.2.zip`. Its final ZIP checksum and upload verification will be recorded below. The installer implementation is unchanged. Package metadata hashes the native `.cpp` but currently omits the new header; use the DLL hash to identify the tested payload. The source comment pointing to documentation was updated after the live test; acceptance logic was unchanged by consolidation.
+Release preparation refreshed the README and package version metadata without recompiling or changing the DLL. The release ZIP is `dist/DIDE-CoopQuestActivity-v0.1.0-test.2.zip`; its final checksum and public-download verification are recorded below. The installer implementation is unchanged. Package metadata hashes the native `.cpp` but currently omits the new header; use the DLL hash to identify the tested payload. The source comment pointing to documentation was updated after the live test; acceptance logic was unchanged by consolidation.
 
 The agent installed test.2 on A with the game closed using the packaged installer, then independently compared the installed DLL hash and ownership receipt version. **No further installer action is needed on A for this tested payload.** Real game directory: `C:\Program Files (x86)\Steam\steamapps\common\DIDE`. Fresh gameplay log: `C:\Users\Peter\AppData\Local\Temp\DIDEQuestChatPoC.log`.
 
@@ -57,7 +57,7 @@ The published test.1 DLL hash is `949C2CC09FBF2E27561C75C8987FC36784F63DF2BE3269
 
 Do not call a freshly compiled CI DLL the exact A-tested binary without checking its hash. If a release uses a different payload, install it on A and require a new successful local acceptance-to-chat test **before installing it on B**. For this release we instead reuse the existing DLL with the proven hash. Package/version defaults now say test.2. CI still compiles/tests the tag, but its automatic release-upload job explicitly skips `v0.1.0-test.2`; its rebuilt artifact must not replace the separately uploaded A-tested Release payload.
 
-### Remote acceptance release preparation
+### Remote acceptance release verification
 
 The user authorized preparing/publishing test.2 for A/B modded and C vanilla, with no completion or further reverse-engineering work. Preparation rechecked the DLL in `poc/build` and the installed DLL on A: both still hash to `761A3124AC68F1DCC1AB8312BA5102E8046D5F9F708BF9A7F0708AEC158E4E87`. The game was closed at this check. No A reinstall or new local acceptance test is required if the uploaded/downloaded Release payload retains that exact hash. B must install the corrected Release ZIP; its old test.1 installation is insufficient.
 
@@ -67,7 +67,9 @@ The refreshed local ZIP passed curated nine-file/metadata/payload/checksum check
 82DCDC5BB8EC63B1354E12C17D742A7BC9755F24B9C8A50DE78BF8D1DED29425
 ```
 
-Release publication and public downloaded-asset verification are pending at this preparation checkpoint. No multiplayer results have been supplied yet.
+**Published at 14:56:10 local (19:56:10 UTC)** as a diagnostic prerelease, release ID `454708819`. Download [DIDE-CoopQuestActivity-v0.1.0-test.2.zip](https://github.com/caffeineLover/Banoi-Together/releases/download/v0.1.0-test.2/DIDE-CoopQuestActivity-v0.1.0-test.2.zip), with its adjacent `.sha256` asset. The public ZIP was downloaded without authentication and verified again: ZIP hash equals `82DCDC5BB8EC63B1354E12C17D742A7BC9755F24B9C8A50DE78BF8D1DED29425`; the DLL inside equals the exact A-tested hash above; manifest version is `0.1.0-test.2` and its payload hash matches. The package contains the current three-client instructions. **A's existing matching DLL remains the validated release payload; no repeat solo quest test or A reinstall is required.**
+
+Tag source commit: `bf7f35cce40a9ec7dfa058014d234df50c03e07b`. [Tagged CI run 45063351045](https://github.com/caffeineLover/Banoi-Together/actions/runs/45063351045) passed compilation, acceptance, proxy and installer/package checks; its `draft-release` job was explicitly skipped as intended. That rebuilt CI DLL was **not** used for the Release. The published ZIP and tag must remain immutable. The old test.1 release was unchanged. No multiplayer results have been supplied yet.
 
 ## Remote acceptance test record
 
@@ -240,7 +242,7 @@ Data2 81313377FF1759FAC6D53A2CE69F0505AB355E89FDA1136046B85CF342EFD759
 ## Next steps and release gates
 
 1. **Documentation checkpoint:** today's A pass is preserved above, and this checkpoint includes the corresponding diagnostic-3 source. Overlapping trace/testing/plan documents have been consolidated and removed. No more quest acceptance is needed for the current local result; A can exit normally.
-2. **Finish test.2 publication using the exact A-tested DLL.** Refresh only package docs/version, validate the ZIP/extracted installer, publish without overwriting test.1, download the public asset and verify its DLL hash again. A different rebuilt DLL requires a new local A gameplay pass before B installation. No new native code or completion work belongs in this step.
+2. **Release checkpoint complete:** test.2 is published using the exact A-tested DLL, with refreshed docs/version and passing package tests. The public download's ZIP/DLL hashes and version were verified independently. No original game file, installed DLL or test.1 asset was changed. Use this immutable Release asset; any different future DLL requires a new local A gameplay pass before B installation.
 3. **Current next gameplay milestone: remote acceptance in both directions.** Install the exact Release package on B; C installs nothing. Confirm A/B identical hashes and fresh READY diagnostic 3. Verify all six manual-chat recipient observations. A accepts one natural quest; require one correctly titled, ordinarily attributed automatic message on B and C. Record it, then repeat with B acting and A/C receiving. Update the record above and preserve logs. Only when both directions pass, continue with remaining host/joiner and negative-control cases. A stock remote handoff with no visible receipt narrows failure to remote delivery; no handoff narrows it to sender/recipient emission. Do not infer either from a missing line alone.
 4. **Check acceptance negatives and unsupported variant.** C accepts while A/B only observe: no automatic observer messages. Opening/rejecting an offer, loading/rejoining, replication and unrelated starts must not announce. Test the exact named-child variant through normal play when available; no state reset.
 5. **Then trace one successful local turn-in.** Keep completion logging-only until actor, successful outcome and title are proven. If it remains harder, ship/report the working acceptance event separately and identify the missing completion boundary.
