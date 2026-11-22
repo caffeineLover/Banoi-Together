@@ -8,21 +8,25 @@ The long-term goal is to make playing through the campaign with friends feel mor
 
 ## Current test result
 
-**Diagnostic 3 / local `0.1.0-test.2` passed one local acceptance-to-chat test on Client A.** Peter accepted **The Lost**, and the game displayed the automatic message with normal **Phaedruss** sender attribution. The log confirms native quest ID 372, the copied displayed title `THE LOST`, the committed local offer phase, and one ordinary chat send with body `accepted "THE LOST"`. The mod does not prepend a name.
+**Diagnostic 3 / `v0.1.0-test.2` uses the exact DLL that passed one local acceptance-to-chat test on Client A.** Peter accepted **The Lost**, and the game displayed the automatic message with normal **Phaedruss** sender attribution. The log confirms native quest ID 372, the copied displayed title `THE LOST`, the committed local offer phase, and one ordinary chat send with body `accepted "THE LOST"`. The mod does not prepend a name.
 
 **Remote delivery is still untested for this corrected build. Completion announcements are disabled.** Unsupported or unconfirmed paths send nothing. General duplicate handling and other acceptance paths still need testing. This is not the finished v0.1 mod.
 
-Test.2 is already installed on Peter's laptop (**always Client A**). No reinstall or further local quest action is needed to preserve this result; the game can be quit normally. Next, prepare the same corrected package for B and test receipt on B and vanilla C when the players are ready. See [the progress record](https://github.com/caffeineLover/Banoi-Together/blob/main/PROGRESS.md#next-steps-and-release-gates) before starting that test.
+This DLL is already installed on Peter's laptop (**always Client A**). Its SHA-256, also required inside the release ZIP and on B, is:
+
+```text
+761A3124AC68F1DCC1AB8312BA5102E8046D5F9F708BF9A7F0708AEC158E4E87
+```
+
+No reinstall or repeat local quest acceptance is needed on A when its installed DLL matches this hash. Any different DLL, including a CI rebuild from the same source, requires a fresh local acceptance-to-chat test on A before installing it on B. **Use the Release asset below for this test, not an Actions build artifact.**
 
 ## Installation and release availability
 
-The published GitHub **`v0.1.0-test.1` is the older diagnostic 2**. It skipped the delayed acceptance path used by Passport to Life, so that probe sent nothing. **There is no corrected test.2 GitHub Release yet.** Installing test.1 again does not install the correction.
+Use **[v0.1.0-test.2](https://github.com/caffeineLover/Banoi-Together/releases/tag/v0.1.0-test.2)** for the remote-acceptance test. The older `v0.1.0-test.1` skipped the delayed acceptance path used by Passport to Life; installing it again does not install this correction.
 
 For the next coordinated test, A and B must use the same corrected package; C installs nothing. An observer is required on each player whose own actions should be announced. Ordinary recipients are intended to remain unmodified, pending the vanilla-receiver test.
 
-The existing installer works as follows. The test.1 link below remains available for that historical build; do not use it to test the correction.
-
-1. Download [DIDE-CoopQuestActivity-v0.1.0-test.1.zip](https://github.com/caffeineLover/Banoi-Together/releases/download/v0.1.0-test.1/DIDE-CoopQuestActivity-v0.1.0-test.1.zip) from the [test prerelease](https://github.com/caffeineLover/Banoi-Together/releases/tag/v0.1.0-test.1). Use the same ZIP on both PCs. The repository's automatically generated **Source code** ZIP is not an installable package.
+1. Download [DIDE-CoopQuestActivity-v0.1.0-test.2.zip](https://github.com/caffeineLover/Banoi-Together/releases/download/v0.1.0-test.2/DIDE-CoopQuestActivity-v0.1.0-test.2.zip) from the [test prerelease](https://github.com/caffeineLover/Banoi-Together/releases/tag/v0.1.0-test.2). Use the same Release ZIP on A and B; A may keep its already-installed matching DLL. The repository's automatically generated **Source code** ZIP is not an installable package.
 2. Exit the game and extract **all** files into a folder.
 3. Double-click `Install.cmd`. Approve Windows' administrator prompt if required. Require a final `SUCCESS` message. No compiler, SDK, external loader or separate Visual C++ runtime installation is needed on B.
 4. Launch normally through Steam. Install nothing on **C**, the vanilla receiver/control.
@@ -43,9 +47,19 @@ Exit the game and double-click `Uninstall.cmd` from the extracted package, or ru
 
 ## Check readiness and report a result
 
-Find `DIDEQuestChatPoC.log` in the game's Windows temporary directory (usually `%TEMP%`; an inherited `TMP` can change it). For the new A-only build require a fresh `READY diagnostic 3` line. The old published test.1 reports diagnostic 2. The startup log distinguishes successful hook installation from an unsupported build. `SUCCESS` from the installer proves installation, not quest/chat functionality.
+Find `DIDEQuestChatPoC.log` in the game's Windows temporary directory (usually `%TEMP%`; an inherited `TMP` can change it). Require a fresh `READY diagnostic 3` line on A and B. The old test.1 reports diagnostic 2. The startup log distinguishes successful hook installation from an unsupported build. `SUCCESS` from the installer proves installation, not quest/chat functionality.
 
-The local A test has passed for The Lost. Before coordinated testing, verify the same corrected DLL/package on both modded machines. Send manual test chat and explicitly confirm each recipient sees it, then accept a naturally available quest and look for one automatic message. Peter opens chat with **C** and presses **Enter** to send. Do not reset quests or type the expected automatic message yourself. Follow [PROGRESS.md](https://github.com/caffeineLover/Banoi-Together/blob/main/PROGRESS.md#next-steps-and-release-gates) for the remaining matrix and failure boundaries; completion is logging-only.
+## Remote acceptance test
+
+1. **A and B modded, C completely vanilla.** With B's game closed, install the test.2 Release ZIP. On A/B compare the installed `xinput1_3.dll` hash against the value above and the ZIP's `version.json`. Require `READY diagnostic 3` after each launches. A hosts the initial session; record the host and player display names. Do not accept a quest yet.
+2. Send distinct ordinary messages: `A manual test`, `B manual test`, `C manual test`. Peter opens chat with **C** and presses **Enter** to send; other players use their configured key. Confirm A's message is visible on B/C, B's on A/C, and C's on A/B. A message being sent is not enough; stop if a recipient cannot see it.
+3. A accepts **one naturally available NPC quest**, notes the exact displayed title, and lets the conversation finish. Do not type the expected automatic message. B and C each report the body, sender and count; require exactly one `accepted "<displayed title>"` from A. Check promptly because ordinary chat has limited visibility.
+4. After recording A's result, B accepts a different naturally available quest. Require exactly one matching message from B on A and C. An already accepted quest cannot repeat the probe; do not reset or force quest state.
+5. Preserve A's and B's complete current-run logs before another test, plus each receiver's observations and approximate time. C needs no mod or observer log. Record results in [PROGRESS.md](https://github.com/caffeineLover/Banoi-Together/blob/main/PROGRESS.md#remote-acceptance-test-record). A stock sender return alone does not prove remote receipt.
+
+Stop at the first failed boundary: **confirmed local acceptance -> quest ID -> copied displayed title -> ordinary chat send -> remote receipt**. Do not add completion announcements or change networking/HUD while running this test. After both directions pass, continue with the remaining acceptance controls separately.
+
+To compare a DLL in PowerShell, use `Get-FileHash -Algorithm SHA256 -LiteralPath 'C:\Program Files (x86)\Steam\steamapps\common\DIDE\xinput1_3.dll'`, adjusting the game path if needed. The expected hash is printed above; installation location may vary by Steam library.
 
 ## Build and test
 
@@ -65,6 +79,6 @@ The packaging test creates the ZIP under `dist/`, checks its curated contents an
 
 The **Test build and release** Actions workflow compiles/tests/packages pushes, pull requests and manual runs. Its downloadable `test-package` artifact contains the installable ZIP and checksum. A passing CI run does not replace the live Client A test.
 
-Tags such as `v0.1.0-test.1` also prepare a **draft prerelease** containing that exact CI-built ZIP. Publishing the prepared draft is a separate step; branch/PR/manual builds never publish a Release. The first prerelease is published at the user's request so B can install for testing, before live quest/chat validation. Install that same Release ZIP on A/B; the checksum in `version.json` identifies the DLL. This diagnostic prerelease does not establish that acceptance, completion or multiplayer delivery works.
+Normally test tags prepare a **draft prerelease** from CI; branch/PR/manual builds never publish a Release. **`v0.1.0-test.2` is an explicit exception:** its Release ZIP is packaged from the existing A-tested DLL, with refreshed README/version metadata, and uploaded separately. CI checks this tag but skips automatic release upload so its rebuilt DLL cannot replace the tested payload. Actions artifacts may contain a different DLL and are not the A-validated Release asset. This prerelease does not establish multiplayer delivery or completion support.
 
 Only this project's original source, scripts, documentation and compiled observer are included. Game assets and game/system DLLs are not distributed. The proxy forwards the three imported XInput functions to Windows' existing system DLL. Project source is MIT licensed; that license does not apply to the game or Microsoft runtime code.

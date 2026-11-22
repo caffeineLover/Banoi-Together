@@ -6,7 +6,7 @@ Last updated: **2026-11-22, America/New_York**. This is the authoritative develo
 
 **Client A's local acceptance-to-chat test passed for The Lost using diagnostic 3 / `0.1.0-test.2`.** Peter accepted the NPC offer and saw a normal chat line attributed to **Phaedruss**. The log independently confirms local ownership, the same dialogue resource, quest `Steffen_Q1` / UID `372`, the copied displayed title `THE LOST`, a committed offer-phase transition, and exactly one stock sender call with `accepted "THE LOST"`.
 
-This proves one local acceptance path. **Remote receipt is untested for this corrected build. Completion announcements are disabled.** The child-quest acceptance variant is tested offline but has not passed a live test. General duplicate suppression and the full v0.1 matrix remain outstanding. The user may quit the game normally; the successful run's log is preserved.
+This proves one local acceptance path. **The active milestone is now remote acceptance delivery in both directions: A -> B/C, then B -> A/C, with C completely vanilla. Remote receipt is untested. Completion announcements remain disabled and no further reverse engineering is requested for this phase.** The child-quest acceptance variant is tested offline but has not passed a live test. General duplicate suppression and the full v0.1 matrix remain outstanding. The successful solo run's log is preserved.
 
 ### Keep this record current
 
@@ -35,7 +35,7 @@ The broader project vision includes better co-op coordination, shared conversati
 | --- | --- | --- |
 | Original prototype | Loaded in the game; two hooks initially | No successful quest/chat test from that prototype |
 | [`v0.1.0-test.1`](https://github.com/caffeineLover/Banoi-Together/releases/tag/v0.1.0-test.1), diagnostic 2 | Published diagnostic prerelease so B could install | Explicitly skips the mode-0 path used by Passport to Life; downloading it again does not install the correction |
-| `0.1.0-test.2`, diagnostic 3 | Built/packaged locally, installed and verified on A; The Lost local test passed | No test.2 GitHub tag/release yet; B's corrected installation and remote delivery are unverified |
+| `0.1.0-test.2`, diagnostic 3 | The Lost local test passed; preparing a release using that exact tested DLL | B's corrected installation and remote delivery are unverified |
 
 **Tested/installed diagnostic-3 DLL SHA256:**
 
@@ -43,19 +43,52 @@ The broader project vision includes better co-op coordination, shared conversati
 761A3124AC68F1DCC1AB8312BA5102E8046D5F9F708BF9A7F0708AEC158E4E87
 ```
 
-Local package: `dist/DIDE-CoopQuestActivity-v0.1.0-test.2.zip`; ZIP SHA256:
+Original local test.2 ZIP SHA256, **before refreshing the README for the remote test**:
 
 ```text
 C9EAE75B12A27664440F95C340EBE5279D53EE2B7C3675D6A1ECDA9B42D4A1A6
 ```
 
-The extracted installer folder is `dist/DIDE-CoopQuestActivity-v0.1.0-test.2/`. Its packaged README predates the final local result and this documentation consolidation. The installer implementation is unchanged. Package metadata hashes the native `.cpp` but currently omits the new header; use the DLL hash to identify the tested payload. The source comment pointing to documentation was updated after the live test; acceptance logic was unchanged by consolidation.
+Release preparation refreshes the README and package version metadata without recompiling or changing the DLL. The release ZIP is `dist/DIDE-CoopQuestActivity-v0.1.0-test.2.zip`. Its final ZIP checksum and upload verification will be recorded below. The installer implementation is unchanged. Package metadata hashes the native `.cpp` but currently omits the new header; use the DLL hash to identify the tested payload. The source comment pointing to documentation was updated after the live test; acceptance logic was unchanged by consolidation.
 
 The agent installed test.2 on A with the game closed using the packaged installer, then independently compared the installed DLL hash and ownership receipt version. **No further installer action is needed on A for this tested payload.** Real game directory: `C:\Program Files (x86)\Steam\steamapps\common\DIDE`. Fresh gameplay log: `C:\Users\Peter\AppData\Local\Temp\DIDEQuestChatPoC.log`.
 
 The published test.1 DLL hash is `949C2CC09FBF2E27561C75C8987FC36784F63DF2BE32696D4044272C17BA2FED`; its ZIP hash is `78ED8DB94393CC00A2E87EC39824947267A75955347F607A026A3CA71186D928`. Published tagged source commit: `184cdf81f8ae7864a96575364a5210fa7431fde5`. Its passing CI run is [45037125429](https://github.com/caffeineLover/Banoi-Together/actions/runs/45037125429). An older local test.1 ZIP was rebuilt independently: it is not necessarily the published CI asset.
 
-Do not call a freshly compiled CI DLL the exact A-tested binary without checking its hash. If a new release builds a different payload, install and check that payload on A before using it as the shared multiplayer build. The current branch package/version defaults still say test.1; local test.2 used an explicit version override. A future test.2 tag supplies that version to CI.
+Do not call a freshly compiled CI DLL the exact A-tested binary without checking its hash. If a release uses a different payload, install it on A and require a new successful local acceptance-to-chat test **before installing it on B**. For this release we instead reuse the existing DLL with the proven hash. Package/version defaults now say test.2. CI still compiles/tests the tag, but its automatic release-upload job explicitly skips `v0.1.0-test.2`; its rebuilt artifact must not replace the separately uploaded A-tested Release payload.
+
+### Remote acceptance release preparation
+
+The user authorized preparing/publishing test.2 for A/B modded and C vanilla, with no completion or further reverse-engineering work. Preparation rechecked the DLL in `poc/build` and the installed DLL on A: both still hash to `761A3124AC68F1DCC1AB8312BA5102E8046D5F9F708BF9A7F0708AEC158E4E87`. The game was closed at this check. No A reinstall or new local acceptance test is required if the uploaded/downloaded Release payload retains that exact hash. B must install the corrected Release ZIP; its old test.1 installation is insufficient.
+
+The refreshed local ZIP passed curated nine-file/metadata/payload/checksum checks and all **18 extracted-package installer cases**. Acceptance filtering and proxy forwarding/wrong-build refusal tests also passed again. No native DLL was rebuilt or installed during preparation. The refreshed ZIP SHA256 is:
+
+```text
+82DCDC5BB8EC63B1354E12C17D742A7BC9755F24B9C8A50DE78BF8D1DED29425
+```
+
+Release publication and public downloaded-asset verification are pending at this preparation checkpoint. No multiplayer results have been supplied yet.
+
+## Remote acceptance test record
+
+Use the step-by-step [README remote test](./README.md#remote-acceptance-test). Test only one action at a time, allow the dialogue to finish, and record receipt immediately because the chat has limited visible history. Do not manually type the automatic message. Confirm the same release DLL on A and B before quest actions; C installs nothing. Initial planned host: A; record the actual host and all display names when the session begins.
+
+| Preflight item | Current evidence |
+| --- | --- |
+| A installed DLL equals the required Release payload hash | PASS at preparation; exact hash above; prior The Lost solo gameplay pass |
+| B installed DLL equals that same hash | Pending installation and confirmation on B |
+| Fresh current-session READY diagnostic 3 on A and B | Pending launch/session; old solo READY is not fresh-session evidence |
+| C completely vanilla | Required topology; confirm before the session |
+| A manual test visible with correct sender on B and C | Pending explicit receiver observations |
+| B manual test visible with correct sender on A and C | Pending explicit receiver observations |
+| C manual test visible with correct sender on A and B | Pending explicit receiver observations |
+
+| Automatic probe | Quest title / time | Sender's native log | Receiver observations | Result |
+| --- | --- | --- | --- | --- |
+| A accepts -> B and vanilla C | Not run | Not collected | B: pending; C: pending; require exactly one correct body/sender on each | NOT TESTED |
+| B accepts -> A and vanilla C | Not run | Not collected | A: pending; C: pending; require exactly one correct body/sender on each | NOT TESTED |
+
+Preserve complete current-run logs from A and B under unique local snapshot names, with host, accepting player, native ID/name, displayed title, approximate time, automatic-send/handoff counts, and each receiver's body/sender/count observation. C needs only observations; it has no observer log. Publish selected evidence and results here after each probe, without uploading full logs or private session data automatically. At a failure, identify **local acceptance detection -> quest ID -> displayed title -> stock send -> remote receipt**; do not infer a transport failure before checking the sender's earlier stages. Both direction rows must pass before moving to remaining acceptance cases, then completion.
 
 ## Test history and evidence
 
@@ -194,7 +227,7 @@ Peter observed roughly two readable chat lines and little accessible history. Re
 
 Installer sources are in [package](./package/); tests in [tests](./tests/); packager [tools/Build-Package.ps1](./tools/Build-Package.ps1); CI [.github/workflows/test-release.yml](./.github/workflows/test-release.yml). Windows PowerShell 5.1 supports Steam registry/library VDF discovery, x64/native fingerprint checks, idempotent owned upgrades, conflict/running-game/reparse refusal, WhatIf, and UAC retry. It owns only `xinput1_3.dll` and `DIDE-CoopQuestActivity.install.json`, with a temporary `.install.pending.json` journal for interrupted-write recovery. Uninstall leaves unknown/modified files alone.
 
-The ZIP contains the original compiled proxy, install/uninstall scripts and wrappers, helper, version metadata, README and MIT license. No development environment, external loader, game/system DLL or separate VC runtime is bundled/required on B. Existing system XInput is forwarded. CI installs legacy XInput only for runner smoke tests. Branch/PR/manual runs upload a package artifact; tagged `v*-test*` builds prepare a **draft prerelease**, with publication a separate step. The first test.1 prerelease was published at the user's explicit request before gameplay validation; do not silently broaden that into a finished-v0.1 success claim.
+The ZIP contains the original compiled proxy, install/uninstall scripts and wrappers, helper, version metadata, README and MIT license. No development environment, external loader, game/system DLL or separate VC runtime is bundled/required on B. Existing system XInput is forwarded. CI installs legacy XInput only for runner smoke tests. Branch/PR/manual runs upload a package artifact; normally tagged `v*-test*` builds prepare a **draft prerelease**, with publication a separate step. Test.2 is explicitly excluded from automatic release upload to preserve the exact A-tested DLL. The first test.1 prerelease was published at the user's explicit request before gameplay validation; do not silently broaden that into a finished-v0.1 success claim.
 
 Protected archive baseline SHA256:
 
@@ -207,8 +240,8 @@ Data2 81313377FF1759FAC6D53A2CE69F0505AB355E89FDA1136046B85CF342EFD759
 ## Next steps and release gates
 
 1. **Documentation checkpoint:** today's A pass is preserved above, and this checkpoint includes the corresponding diagnostic-3 source. Overlapping trace/testing/plan documents have been consolidated and removed. No more quest acceptance is needed for the current local result; A can exit normally.
-2. **Prepare the corrected shared test package.** Before publication, run current compile/filtering/proxy/installer/package checks and refresh packaged docs/version. Choose whether to distribute the existing exact A-tested payload or a tagged CI build. If CI produces a different DLL, install that exact payload on A and check it before declaring A/B equivalent. Do not overwrite test.1 assets. The intended next test version is `v0.1.0-test.2`; no tag/release has been created yet.
-3. **Resume acceptance-only multiplayer when players are ready.** Install the same corrected package on B; C installs nothing. Confirm fresh READY diagnostic 3 on each observer. Send distinct manual messages from A/B/C and explicitly confirm visibility/sender at every recipient. A accepts one natural quest; require one correctly titled, ordinarily attributed automatic message on B and C. Repeat with B acting, then as host and joining player. Preserve logs/titles/observations. A stock remote handoff with no visible receipt narrows failure to remote delivery; no handoff narrows it to sender/recipient emission. Do not infer either from a missing line alone.
+2. **Finish test.2 publication using the exact A-tested DLL.** Refresh only package docs/version, validate the ZIP/extracted installer, publish without overwriting test.1, download the public asset and verify its DLL hash again. A different rebuilt DLL requires a new local A gameplay pass before B installation. No new native code or completion work belongs in this step.
+3. **Current next gameplay milestone: remote acceptance in both directions.** Install the exact Release package on B; C installs nothing. Confirm A/B identical hashes and fresh READY diagnostic 3. Verify all six manual-chat recipient observations. A accepts one natural quest; require one correctly titled, ordinarily attributed automatic message on B and C. Record it, then repeat with B acting and A/C receiving. Update the record above and preserve logs. Only when both directions pass, continue with remaining host/joiner and negative-control cases. A stock remote handoff with no visible receipt narrows failure to remote delivery; no handoff narrows it to sender/recipient emission. Do not infer either from a missing line alone.
 4. **Check acceptance negatives and unsupported variant.** C accepts while A/B only observe: no automatic observer messages. Opening/rejecting an offer, loading/rejoining, replication and unrelated starts must not announce. Test the exact named-child variant through normal play when available; no state reset.
 5. **Then trace one successful local turn-in.** Keep completion logging-only until actor, successful outcome and title are proven. If it remains harder, ship/report the working acceptance event separately and identify the missing completion boundary.
 6. **Add minimal in-process duplicate suppression** based on proven event kind/quest identity and load/rejoin handling. Current consume-once pending acceptance is a useful first guard, not a fully validated event-history policy.

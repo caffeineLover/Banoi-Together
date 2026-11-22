@@ -1,7 +1,7 @@
 {
   "product": "DIDE-CoopQuestActivity",
   "schemaVersion": 1,
-  "version": "0.1.0-test.1",
+  "version": "0.1.0-test.2",
   "appId": "383150",
   "channel": "test",
   "file": { "name": "xinput1_3.dll", "sha256": "GENERATED_BY_BUILD_PACKAGE" },
