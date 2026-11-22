@@ -33,7 +33,7 @@ Verify normal manual chat on A/B/C, then accept one naturally available quest on
 
 ## Build and test
 
-Developers need Windows and MSVC x64 C++ build tools; installed game files are not needed to build or run fixture tests.
+Developers need Windows and MSVC x64 C++ build tools; installed game files are not needed to build or run fixture tests. The forwarding smoke test also needs system XInput 1.3 from Microsoft's [legacy DirectX runtime](https://www.microsoft.com/en-us/download/details.aspx?id=8109), normally already installed on a PC running this game. CI installs that dependency only on its temporary runner; it is not bundled in the ZIP.
 
 ```bat
 poc\build.cmd

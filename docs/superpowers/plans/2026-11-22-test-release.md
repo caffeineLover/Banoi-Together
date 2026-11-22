@@ -50,9 +50,9 @@ Files: .github/workflows/test-release.yml, RELEASE_NOTES.md; update TESTING.txt 
 
 - [x] Add branch/PR/manual build verification and tagged v*-test* draft prerelease preparation. A CI build artifact alone is not proof of a passing game test.
 - [x] Review scripts/workflow and fix material findings with regression tests.
-- [ ] Initialize Git on a test-release preparation branch and commit only the curated source/docs.
-- [ ] Publish repository after destination/visibility and usable authentication are available. Do not recreate a repository that already exists or overwrite remote history.
-- [ ] Leave v0.1.0-test.1 untagged/unpublished until Client A's live acceptance chain passes; record the exact remaining gate.
+- [x] Initialize Git on a test-release preparation branch and commit only the curated source/docs.
+- [x] Publish repository after destination/visibility and usable authentication are available. Do not recreate a repository that already exists or overwrite remote history.
+- [x] Leave v0.1.0-test.1 untagged/unpublished until Client A's live acceptance chain passes; record the exact remaining gate.
 
 ## Progress
 
@@ -65,3 +65,5 @@ Final fresh-context review: two Important findings, no Minor findings. Fixed dur
 Review scope boundary: native quest semantics, completion messages, duplicate suppression and multiplayer success remain outside packaging verification and explicitly unverified. Ruling: preserve these diagnostic limitations and the paused gameplay test; cost: this package cannot yet be called the usable v0.1 mod.
 
 Task 2: complete. Final extracted-package suite 18/18 passed. Actual Steam discovery and -WhatIf validation passed against the real supported installation with no installation writes. Git initialized on prepare-test-release. Git metadata writes require the host's elevated execution context; use a per-command safe.directory for this one workspace because initialization ran under the sandbox identity. No global safe-directory exception is needed.
+
+Task 3: source published to the requested existing empty public repo, main, commit 7223b58. Connector write API returned 403; ordinary Git upload succeeded using existing credentials. No tags or Releases created. Release-step simulation passed for new draft, draft rerun and published-release refusal. First hosted run compiled successfully, then failed at smoke module load 126: the Windows Server runner lacks the legacy system XInput dependency present on the game PC. CI now provisions only its ephemeral runner with the official Microsoft-signed DirectX runtime before the smoke test. No Microsoft files enter Git or the ZIP. README documents this build/test dependency.
