@@ -6,7 +6,7 @@ An experimental quest-activity observer for **Dead Island: Definitive Edition on
 
 ## Install on A and B
 
-1. Download the test Release asset named `DIDE-CoopQuestActivity-v0.1.0-test.1.zip` when it is published. Use the same ZIP on both PCs. The repository's automatically generated **Source code** ZIP is not an installable package.
+1. Download [DIDE-CoopQuestActivity-v0.1.0-test.1.zip](https://github.com/caffeineLover/Banoi-Together/releases/download/v0.1.0-test.1/DIDE-CoopQuestActivity-v0.1.0-test.1.zip) from the [test prerelease](https://github.com/caffeineLover/Banoi-Together/releases/tag/v0.1.0-test.1). Use the same ZIP on both PCs. The repository's automatically generated **Source code** ZIP is not an installable package.
 2. Exit the game and extract **all** files into a folder.
 3. Double-click `Install.cmd`. Approve Windows' administrator prompt if required. Require a final `SUCCESS` message. No compiler, SDK, external loader or separate Visual C++ runtime installation is needed on B.
 4. Launch normally through Steam. Install nothing on **C**, the vanilla receiver/control.
@@ -48,6 +48,6 @@ The packaging test creates the ZIP under `dist/`, checks its curated contents an
 
 The **Test build and release** Actions workflow compiles/tests/packages pushes, pull requests and manual runs. Its downloadable `test-package` artifact contains the installable ZIP and checksum. A passing CI run does not replace the live Client A test.
 
-Tags such as `v0.1.0-test.1` also prepare a **draft prerelease** containing that exact CI-built ZIP. Keep it unpublished until Client A's local acceptance-to-chat path is verified. Install that same CI-produced ZIP on A/B for the multiplayer test; the checksum in `version.json` identifies the DLL. Do not create/push the first release tag until the current local acceptance test passes. Publishing the prepared draft is a separate final step; branch/PR/manual builds never publish a Release.
+Tags such as `v0.1.0-test.1` also prepare a **draft prerelease** containing that exact CI-built ZIP. Publishing the prepared draft is a separate step; branch/PR/manual builds never publish a Release. The first prerelease is published at the user's request so B can install for testing, before live quest/chat validation. Install that same Release ZIP on A/B; the checksum in `version.json` identifies the DLL. This diagnostic prerelease does not establish that acceptance, completion or multiplayer delivery works.
 
 Only this project's original source, scripts, documentation and compiled observer are included. Game assets and game/system DLLs are not distributed. The proxy forwards the three imported XInput functions to Windows' existing system DLL. Project source is MIT licensed; that license does not apply to the game or Microsoft runtime code.

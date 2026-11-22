@@ -1,9 +1,11 @@
-# Banoi Together test build
+# Banoi Together v0.1.0-test.1
 
 Installable diagnostic for Steam Dead Island: Definitive Edition (app 383150). Use the same ZIP on A and B; leave C completely vanilla. Extract all files and run `Install.cmd`. Installation locates Steam libraries, checks the supported native binaries and refuses conflicting proxies. `Uninstall.cmd` removes only the matching owned files. No original game file or PAK is modified.
 
-Acceptance announcements use normal player chat for the supported, confirmed local acceptance path. **Completion announcements are disabled**; finish/talk callbacks are diagnostic logging only. General duplicate suppression and multiplayer success are not yet established.
+**Diagnostic test build:** acceptance announcements are attempted through one statically traced local acceptance path using normal player chat. The local quest-to-chat chain and delivery to a vanilla co-op client are still unverified. **Completion announcements are disabled**; finish/talk callbacks are diagnostic logging only. General duplicate suppression is not yet implemented.
 
 The ZIP includes the compiled proxy, install/uninstall scripts and wrappers, metadata, README and license. No development environment is required on B, and no game or system DLLs are included.
 
-This Release is created as a **draft prerelease**. Keep it unpublished until Client A's local acceptance-to-chat path is verified. Then install this exact CI-produced ZIP on A and B for the A/B/C test matrix. CI success and installer success do not prove native quest semantics or remote delivery.
+Download **DIDE-CoopQuestActivity-v0.1.0-test.1.zip** below, extract all files, close the game, and double-click **Install.cmd**. Require the final **SUCCESS** message. Do not download the automatically generated Source code ZIP for installation. Keep the extracted folder to run **Uninstall.cmd** later.
+
+This **test prerelease** is published so Client B can install before coordinated gameplay testing. Install this exact Release ZIP on both A and B; leave C unmodified. CI and installer success do not prove quest/chat functionality. Gameplay testing remains paused until the players are ready.

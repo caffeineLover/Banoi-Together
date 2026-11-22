@@ -113,9 +113,9 @@ or force quest state to manufacture tests.
 Release gates (updated authorization)
 Prepare source, safe installer, ZIP and GitHub Actions now in public repo
 caffeineLover/Banoi-Together. First test package/tag: v0.1.0-test.1, asset
-DIDE-CoopQuestActivity-v0.1.0-test.1.zip. Do not tag/publish this first test
-Release until A's local acceptance-to-chat chain is verified. Tagged builds
-create only draft prereleases; publication is a separate step. CI artifacts
-can be used privately for installation preparation before that gate.
+DIDE-CoopQuestActivity-v0.1.0-test.1.zip. The user's latest request authorizes
+publishing this diagnostic test prerelease now so B can install. Local
+acceptance-to-chat remains unverified. Tagged builds create draft prereleases;
+publication remains a separate step. Use the same Release ZIP on A and B.
 The usable v0.1.0 release still requires the full acceptance/completion matrix
 and minimal duplicate suppression. No such gameplay success is claimed.

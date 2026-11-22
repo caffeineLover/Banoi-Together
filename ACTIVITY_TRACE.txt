@@ -7,8 +7,8 @@ experiment, not v0.1. Acceptance stays restricted to the proven synchronous
 mode. Completion is observed in the log but MUST NOT send chat until local
 causation is established. Duplicate suppression follows the live event -> ID
 -> title -> stock chat -> vanilla delivery proof. Subsequent authorization
-allows installer/repository/CI preparation now; no test Release publication
-until A's local acceptance-to-chat chain is verified.
+allows installer/repository/CI preparation. The user's latest request also
+authorizes a diagnostic test prerelease so B can install before validation.
 
 Binary identities and original acceptance/chat trace: NATIVE_TRACE.txt.
 All addresses below are gamedll_x64_rwdi.dll RVAs for that exact binary.
@@ -136,7 +136,7 @@ topology. B's installation/readiness still requires verification on that PC.
 Only after this evidence: implement a narrowly correlated completion observer
 (or report it blocked), then minimal in-process duplicate suppression keyed
 by proven event kind and quest identity, with a baseline for load/rejoin.
-No public v0.1 package or GitHub Release until the user-specified A/B/C matrix
+No usable v0.1 release claim until the user-specified A/B/C matrix
 is tested. C must remain without any observer. A diagnostic test package is
 now separately authorized: see the updated release gates in ACTIVITY_TESTING.txt.
 

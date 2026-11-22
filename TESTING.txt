@@ -5,8 +5,9 @@ Preparation before resuming
   A and B use the same current diagnostic DLL. C installs nothing.
 - Repository: https://github.com/caffeineLover/Banoi-Together
   Installer/CI preparation is now authorized before gameplay validation.
-  First test tag: v0.1.0-test.1. Keep the Release unpublished until A's
-  local acceptance -> quest ID -> title -> ordinary chat path is verified.
+  First test tag: v0.1.0-test.1. The user now requests publication so B can
+  install before coordinated testing. This is a diagnostic prerelease;
+  local acceptance -> quest ID -> title -> ordinary chat is still unverified.
 - Prepare B using the installable ZIP, with its game fully closed:
   1. Obtain DIDE-CoopQuestActivity-v0.1.0-test.1.zip from the passing Actions
      run's test-package artifact, or the test Release once it is published.
