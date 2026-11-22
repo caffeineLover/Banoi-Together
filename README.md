@@ -1,53 +1,64 @@
 # Banoi Together
 
-An experimental quest-activity observer for **Dead Island: Definitive Edition on Steam** (app 383150). The package/project identifier is `DIDE-CoopQuestActivity`.
+Banoi Together is an experimental co-op enhancement mod for Dead Island: Definitive Edition.
 
-**Current test build:** attempts `accepted "Quest Title"` through ordinary player chat for one traced acceptance path. The game supplies the sender's name. Completion announcements are **disabled**; turn-ins currently produce diagnostic logs only. Unsupported acceptance paths send nothing. Multiplayer delivery and complete duplicate suppression are still unverified. This is not the finished v0.1 mod.
+The long-term goal is to make playing through the campaign with friends feel more like a shared experience: better quest coordination, shared quest conversations, independent dialogue skipping, and other co-op quality-of-life improvements.
 
-## Install on A and B
+The project is still very early. The current build is primarily a multiplayer test of the first piece of that framework.
 
-1. Download [DIDE-CoopQuestActivity-v0.1.0-test.1.zip](https://github.com/caffeineLover/Banoi-Together/releases/download/v0.1.0-test.1/DIDE-CoopQuestActivity-v0.1.0-test.1.zip) from the [test prerelease](https://github.com/caffeineLover/Banoi-Together/releases/tag/v0.1.0-test.1). Use the same ZIP on both PCs. The repository's automatically generated **Source code** ZIP is not an installable package.
-2. Exit the game and extract **all** files into a folder.
-3. Double-click `Install.cmd`. Approve Windows' administrator prompt if required. Require a final `SUCCESS` message. No compiler, SDK, external loader or separate Visual C++ runtime installation is needed on B.
-4. Launch normally through Steam. Install nothing on **C**, the vanilla receiver/control.
 
-The installer searches Steam's registered location and library list, verifies the x64 executable and both supported native DLL fingerprints, and installs only `xinput1_3.dll` plus its ownership receipt. A temporary recovery journal restores the previous installation if a write fails; rerun install/uninstall after an interrupted process to recover. It refuses another mod's proxy and upgrades only a matching owned/known build. It never writes any original game file, including `Data0.pak`, `Data1.pak` or `Data2.pak`.
+## Current test build
+The current test build watches for a player accepting a quest and attempts to announce it through Dead Island's normal multiplayer chat:
 
-If discovery finds multiple installations, or none, open PowerShell in the extracted folder:
+accepted "Quest Title"
 
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1 -GamePath "D:\SteamLibrary\steamapps\common\DIDE"
-```
+Dead Island supplies the player's name, so other players should see who accepted the quest without Banoi Together having to implement its own networking or notification system.
 
-Use `-WhatIf` for validation without installing. `-SteamPath` can specify a nonstandard Steam root. Wrong native hashes mean this exact test build is unsupported; do not replace original game DLLs to bypass that check. A filesystem link/junction in the selected path is currently refused.
+At the moment:
+- Quest acceptance is implemented for one known acceptance path.
+- Quest completion/turn-in is logged for testing but is not announced yet.
+- Some quest types may not produce a message.
+- Multiplayer delivery and duplicate handling still need real-world testing.
+This is a test build, not a finished v0.1 release.
+
+
+
+## Installation
+1. Download Banoi-Together-v0.1.0-test.1.zip from the latest test release. Do not download GitHub's automatically generated “Source code” ZIP.
+2. Exit Dead Island.
+3. Extract the ZIP somewhere convenient.
+4. Double-click Install.cmd.
+5. Make sure the installer finishes with SUCCESS.
+6. Launch Dead Island normally through Steam.
+The installer finds your Steam installation automatically and does not modify Data0.pak, Data1.pak, Data2.pak, or any other original game file.
+
+If automatic detection fails, see Manual installation / troubleshooting.
+Testing
+For the current multiplayer test, install Banoi Together on at least one player who will accept quests. Other players can remain completely unmodded.
+
+Before testing quest announcements, make sure ordinary Dead Island text chat works between the players.
+
+Then have a modded player accept a normal quest and check whether the other players receive a message such as:
+
+Phaedruss: accepted "Exodus"
+
+If something doesn't work, see [ACTIVITY_TESTING.txt] for the diagnostic checklist and log-file instructions.
+
+
 
 ## Uninstall
+Exit the game and run Uninstall.cmd.
 
-Exit the game and double-click `Uninstall.cmd` from the extracted package, or run `Uninstall.ps1`. The same `-GamePath` and `-SteamPath` options are available. Only the matching owned DLL and receipt are removed. An unknown or modified DLL is left untouched.
+The uninstaller removes only the files installed by Banoi Together.
 
-## Check readiness and report a result
 
-Find `DIDEQuestChatPoC.log` in the game's Windows temporary directory (usually `%TEMP%`; an inherited `TMP` can change it). Require a fresh `READY diagnostic 2` line on A and B. The startup log distinguishes successful hook installation from an unsupported build. `SUCCESS` from the installer proves installation, not quest/chat functionality.
 
-Verify normal manual chat on A/B/C, then accept one naturally available quest on A. Record the displayed title and whether B/C saw one correctly attributed automatic message. Repeat with B acting. Current completion tests collect logs, without sending `completed` chat. Load/rejoin and actions by vanilla C must not cause automatic announcements. See the repository's [test checklist](https://github.com/caffeineLover/Banoi-Together/blob/main/ACTIVITY_TESTING.txt) and [native trace](https://github.com/caffeineLover/Banoi-Together/blob/main/ACTIVITY_TRACE.txt).
+For developers
+and put the native hashes, XInput forwarding, MSVC requirements, CI packaging, smoke tests, release workflow, -WhatIf, test fixtures, etc. down there.
 
-## Build and test
+One more thing I would definitely change: rename the distributable from DIDE-CoopQuestActivity-v0.1.0-test.1.zip to Banoi-Together-v0.1.0-test.1.zip. DIDE-CoopQuestActivity is an implementation-era name that has already outlived its usefulness. The mod is Banoi Together now.
 
-Developers need Windows and MSVC x64 C++ build tools; installed game files are not needed to build or run fixture tests. The forwarding smoke test also needs system XInput 1.3 from Microsoft's [legacy DirectX runtime](https://www.microsoft.com/en-us/download/details.aspx?id=8109), normally already installed on a PC running this game. CI installs that dependency only on its temporary runner; it is not bundled in the ZIP.
+So: the current README is good engineering documentation, but poor front-door documentation. I would preserve most of the information, but demote about half of it to developer/testing docs and make the README explain the mod to a person first.
 
-```bat
-poc\build.cmd
-research\smoke_test.cmd
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests\Installer.Tests.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests\Package.Tests.ps1
-```
-
-The packaging test creates the ZIP under `dist/`, checks its curated contents and hashes, and exercises installation/uninstallation with temporary fake Steam/game fixtures. It does not install into your real game.
-
-## GitHub test builds
-
-The **Test build and release** Actions workflow compiles/tests/packages pushes, pull requests and manual runs. Its downloadable `test-package` artifact contains the installable ZIP and checksum. A passing CI run does not replace the live Client A test.
-
-Tags such as `v0.1.0-test.1` also prepare a **draft prerelease** containing that exact CI-built ZIP. Publishing the prepared draft is a separate step; branch/PR/manual builds never publish a Release. The first prerelease is published at the user's request so B can install for testing, before live quest/chat validation. Install that same Release ZIP on A/B; the checksum in `version.json` identifies the DLL. This diagnostic prerelease does not establish that acceptance, completion or multiplayer delivery works.
 
 Only this project's original source, scripts, documentation and compiled observer are included. Game assets and game/system DLLs are not distributed. The proxy forwards the three imported XInput functions to Windows' existing system DLL. Project source is MIT licensed; that license does not apply to the game or Microsoft runtime code.
