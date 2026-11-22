@@ -18,7 +18,7 @@ This DLL is already installed on Peter's laptop (**always Client A**). Its SHA-2
 761A3124AC68F1DCC1AB8312BA5102E8046D5F9F708BF9A7F0708AEC158E4E87
 ```
 
-No reinstall or repeat local quest acceptance is needed on A when its installed DLL matches this hash. Any different DLL, including a CI rebuild from the same source, requires a fresh local acceptance-to-chat test on A before installing it on B. **Use the Release asset below for this test, not an Actions build artifact.**
+No reinstall or additional **solo validation** is needed on A when its installed DLL matches this hash. **A must still accept a new NPC quest during the multiplayer test below so B and C can check its automatic announcement.** Any different DLL, including a CI rebuild from the same source, requires a fresh local acceptance-to-chat test on A before installing it on B. **Use the Release asset below for this test, not an Actions build artifact.**
 
 ## Installation and release availability
 
@@ -51,15 +51,28 @@ Find `DIDEQuestChatPoC.log` in the game's Windows temporary directory (usually `
 
 ## Remote acceptance test
 
-1. **A and B modded, C completely vanilla.** With B's game closed, install the test.2 Release ZIP. On A/B compare the installed `xinput1_3.dll` hash against the value above and the ZIP's `version.json`. Require `READY diagnostic 3` after each launches. A hosts the initial session; record the host and player display names. Do not accept a quest yet.
-2. Send distinct ordinary messages: `A manual test`, `B manual test`, `C manual test`. Peter opens chat with **C** and presses **Enter** to send; other players use their configured key. Confirm A's message is visible on B/C, B's on A/C, and C's on A/B. A message being sent is not enough; stop if a recipient cannot see it.
-3. A accepts **one naturally available NPC quest**, notes the exact displayed title, and lets the conversation finish. Do not type the expected automatic message. B and C each report the body, sender and count; require exactly one `accepted "<displayed title>"` from A. Check promptly because ordinary chat has limited visibility.
-4. After recording A's result, B accepts a different naturally available quest. Require exactly one matching message from B on A and C. An already accepted quest cannot repeat the probe; do not reset or force quest state.
-5. Preserve A's and B's complete current-run logs before another test, plus each receiver's observations and approximate time. C needs no mod or observer log. Record results in [PROGRESS.md](https://github.com/caffeineLover/Banoi-Together/blob/main/PROGRESS.md#remote-acceptance-test-record). A stock sender return alone does not prove remote receipt.
+**This test requires actually accepting NPC quest offers. Typing a chat message is only the preliminary connectivity check. Opening the quest journal, selecting an existing quest, or typing an acceptance announcement does not test the mod.**
+
+1. **Prepare the three PCs.** Peter is A and already has the exact tested DLL installed. B closes the game, downloads the [test.2 Release ZIP](https://github.com/caffeineLover/Banoi-Together/releases/download/v0.1.0-test.2/DIDE-CoopQuestActivity-v0.1.0-test.2.zip), extracts all files, double-clicks `Install.cmd` from that extracted folder and requires `SUCCESS`. C installs nothing and stays completely vanilla. Use the Release ZIP, not test.1, Source code or an Actions artifact.
+2. **Confirm the build before spending a quest.** The installed DLL on A and B must match the full SHA-256 printed above and the release's `version.json`; the PowerShell command below checks it. A's installed hash was already verified against the downloaded release. If either DLL differs, stop: a different payload needs a new successful solo acceptance test on A before installation on B.
+3. **Start the co-op session.** Launch normally through Steam. A hosts/loads the save; B and C join A. Confirm all three are in the same session and note their displayed player names. On A and B check the latest startup block in `%TEMP%\DIDEQuestChatPoC.log` for `READY diagnostic 3`; an old run's line or diagnostic 2 is insufficient. Stop if startup failed. Nobody accepts or turns in a quest during setup.
+4. **Check manual chat, one sender at a time.** A presses **C**, types `A manual test`, then presses **Enter**; B and C each confirm they saw it attributed to A. B uses their configured chat key to send `B manual test`; A and C each confirm receipt. C sends `C manual test`; A and B each confirm receipt. Record actual recipient visibility, not just that each sender pressed Enter. Stop if any message is missing. This step alone is not the quest test.
+5. **Prepare A's real quest offer.** Find a naturally available NPC quest that A has not already accepted. The Lost cannot be repeated if it is already accepted. A opens the NPC's offer and notes its exact displayed quest title. Tell B and C to watch their normal chat/HUD; all players hold off on other quest actions and additional manual chat so the automatic line is easy to spot.
+6. **A selects Accept on the NPC's quest offer.** Let the NPC conversation finish and normal gameplay resume. Do not manually type `accepted ...` or prepend a player name. Accepting the quest must cause the mod to send the message automatically after its confirmed state change.
+7. **Record A's result before continuing.** A notes whether the automatic line appeared locally. B and C independently report the displayed sender, quest title and number of automatic lines. Each must receive exactly one ordinary chat announcement attributed to A, with body `accepted "<A's displayed quest title>"`. The game's normal presentation/capitalization may differ. Record the approximate time immediately because chat visibility is brief. If the line is missing, duplicated or incorrect, stop quest testing and preserve the logs instead of accepting more quests.
+8. **Repeat with B doing the actual acceptance.** Only after A's result is recorded and passes, B finds a different naturally available, not-yet-accepted NPC quest and notes its displayed title. A and C watch normal chat. B selects **Accept** on that NPC offer and lets the conversation finish, without typing an announcement. B notes local display; A and C each must receive exactly one automatic `accepted "<B's displayed quest title>"` message attributed normally to B. Record the title, sender, count and approximate time. Stop on a missing, duplicate or wrong line.
+9. **Preserve evidence on both modded PCs.** Copy A's and B's complete `DIDEQuestChatPoC.log` from their Windows temporary directories before another launch/test. To find it, press Win+R, enter `%TEMP%`, and locate that filename. Keep separate copies named, for example, `A-test2-remote.log` and `B-test2-remote.log` on the Desktop. They can quit normally first; do not delete the original logs. C only needs to report what appeared, since C has no mod log. If the log is absent, report that rather than reinstalling or changing game files.
+10. **Report both probes.** For A's acceptance provide the quest title, approximate time, what A saw locally, and what B/C saw including sender and count. For B's acceptance provide the corresponding B-local and A/C observations. Supply the preserved logs when requested. Record the results in [PROGRESS.md](https://github.com/caffeineLover/Banoi-Together/blob/main/PROGRESS.md#remote-acceptance-test-record). Both directions must pass before moving on; do not test turn-ins/completion or other acceptance cases yet.
 
 Stop at the first failed boundary: **confirmed local acceptance -> quest ID -> copied displayed title -> ordinary chat send -> remote receipt**. Do not add completion announcements or change networking/HUD while running this test. After both directions pass, continue with the remaining acceptance controls separately.
 
-To compare a DLL in PowerShell, use `Get-FileHash -Algorithm SHA256 -LiteralPath 'C:\Program Files (x86)\Steam\steamapps\common\DIDE\xinput1_3.dll'`, adjusting the game path if needed. The expected hash is printed above; installation location may vary by Steam library.
+To compare the installed DLL in PowerShell, run this on A/B, adjusting the game path if Steam uses another library:
+
+```powershell
+Get-FileHash -Algorithm SHA256 -LiteralPath 'C:\Program Files (x86)\Steam\steamapps\common\DIDE\xinput1_3.dll'
+```
+
+The expected hash is `761A3124AC68F1DCC1AB8312BA5102E8046D5F9F708BF9A7F0708AEC158E4E87`. To inspect startup, open the log in Notepad and scroll to the latest startup block; check the run just launched, not a previous READY line. An inherited `TMP` can put the log elsewhere; report a missing log so its actual location can be checked.
 
 ## Build and test
 

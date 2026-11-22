@@ -59,7 +59,7 @@ Do not call a freshly compiled CI DLL the exact A-tested binary without checking
 
 ### Remote acceptance release verification
 
-The user authorized preparing/publishing test.2 for A/B modded and C vanilla, with no completion or further reverse-engineering work. Preparation rechecked the DLL in `poc/build` and the installed DLL on A: both still hash to `761A3124AC68F1DCC1AB8312BA5102E8046D5F9F708BF9A7F0708AEC158E4E87`. The game was closed at this check. No A reinstall or new local acceptance test is required if the uploaded/downloaded Release payload retains that exact hash. B must install the corrected Release ZIP; its old test.1 installation is insufficient.
+The user authorized preparing/publishing test.2 for A/B modded and C vanilla, with no completion or further reverse-engineering work. Preparation rechecked the DLL in `poc/build` and the installed DLL on A: both still hash to `761A3124AC68F1DCC1AB8312BA5102E8046D5F9F708BF9A7F0708AEC158E4E87`. The game was closed at this check. No A reinstall or repeat **solo** acceptance test is required if the uploaded/downloaded Release payload retains that exact hash. **A still must accept a new quest during the remote test.** B must install the corrected Release ZIP; its old test.1 installation is insufficient.
 
 The refreshed local ZIP passed curated nine-file/metadata/payload/checksum checks and all **18 extracted-package installer cases**. Acceptance filtering and proxy forwarding/wrong-build refusal tests also passed again. No native DLL was rebuilt or installed during preparation. The refreshed ZIP SHA256 is:
 
@@ -73,7 +73,9 @@ Tag source commit: `bf7f35cce40a9ec7dfa058014d234df50c03e07b`. [Tagged CI run 45
 
 ## Remote acceptance test record
 
-Use the step-by-step [README remote test](./README.md#remote-acceptance-test). Test only one action at a time, allow the dialogue to finish, and record receipt immediately because the chat has limited visible history. Do not manually type the automatic message. Confirm the same release DLL on A and B before quest actions; C installs nothing. Initial planned host: A; record the actual host and all display names when the session begins.
+Use the full ten-step [README remote test](./README.md#remote-acceptance-test). **The tested action is A actually selecting Accept on a new NPC quest offer, then B actually accepting a different offered quest.** Manual chat is only a preflight; it cannot establish automatic quest delivery. Test one action at a time, allow the dialogue to finish, and record receipt immediately because the chat has limited visible history. Do not manually type the automatic message. Confirm the same release DLL on A and B before quest actions; C installs nothing. Initial planned host: A; record the actual host and all display names when the session begins.
+
+**Instruction clarification, 15:10 local:** the user found the abbreviated chat/test directions unclear and requested the full procedure. The repository README now explicitly covers B installation, identical hashes, fresh startup, joining the same session, all manual-chat recipients, A's NPC Accept action, B/C automatic receipt, B's NPC Accept action, A/C automatic receipt, stop conditions, log copies and the result fields to report. “No repeat local test on A” means no additional solo validation of this unchanged DLL; it does not remove A's acceptance action from the multiplayer test. This is a documentation clarification only: no new gameplay result, native change, installation, or release-asset replacement. The immutable ZIP retains its release-time README; use the repository README for the expanded instructions. All remote-result rows remain NOT TESTED until receiver observations arrive.
 
 | Preflight item | Current evidence |
 | --- | --- |
