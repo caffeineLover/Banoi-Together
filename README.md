@@ -71,6 +71,8 @@ Build the native proxy with:
 
 ```bat
 poc\build.cmd
-
+```
 
 Only this project's original source, scripts, documentation and compiled observer are included. Game assets and game/system DLLs are not distributed. The proxy forwards the three imported XInput functions to Windows' existing system DLL. Project source is MIT licensed; that license does not apply to the game or Microsoft runtime code.
+
+
