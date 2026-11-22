@@ -30,6 +30,7 @@ jobs:
           $xinput = Join-Path $env:SystemRoot 'System32/xinput1_3.dll'
           if (Test-Path -LiteralPath $xinput) { Write-Host 'System XInput 1.3 is already present.'; exit 0 }
           Write-Host 'System XInput 1.3 is absent on this runner; installing the Microsoft runtime for testing only.'
+          $ProgressPreference = 'SilentlyContinue'
           $redist = Join-Path $env:RUNNER_TEMP 'directx_Jun2010_redist.exe'
           $extract = Join-Path $env:RUNNER_TEMP 'directx-test-runtime'
           New-Item -ItemType Directory -Path $extract -Force | Out-Null

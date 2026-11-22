@@ -290,3 +290,6 @@ Install-DidePackage -PackagePath $Package -GamePath $Game | Out-Null
 }
 Write-Host "Installer tests: $script:passed passed, $script:failed failed"
 if($script:failed) { exit 1 }
+# Failure-injection children intentionally exit nonzero. Do not leak their
+# LASTEXITCODE into GitHub's enclosing PowerShell shell after a green suite.
+exit 0
