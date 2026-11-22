@@ -53,12 +53,24 @@ The uninstaller removes only the files installed by Banoi Together.
 
 
 
-For developers
-and put the native hashes, XInput forwarding, MSVC requirements, CI packaging, smoke tests, release workflow, -WhatIf, test fixtures, etc. down there.
+## For Developers
 
-One more thing I would definitely change: rename the distributable from DIDE-CoopQuestActivity-v0.1.0-test.1.zip to Banoi-Together-v0.1.0-test.1.zip. DIDE-CoopQuestActivity is an implementation-era name that has already outlived its usefulness. The mod is Banoi Together now.
+Banoi Together currently uses a native x64 XInput proxy (`xinput1_3.dll`) to load alongside Dead Island: Definitive Edition and observe selected game events.
 
-So: the current README is good engineering documentation, but poor front-door documentation. I would preserve most of the information, but demote about half of it to developer/testing docs and make the README explain the mod to a person first.
+The current test build is focused on tracing quest activity and sending quest-acceptance notifications through the game's existing player-chat system. Quest completion/turn-in hooks are currently diagnostic only.
+
+### Building
+
+You need:
+
+- Windows
+- MSVC x64 C++ build tools
+- PowerShell
+
+Build the native proxy with:
+
+```bat
+poc\build.cmd
 
 
 Only this project's original source, scripts, documentation and compiled observer are included. Game assets and game/system DLLs are not distributed. The proxy forwards the three imported XInput functions to Windows' existing system DLL. Project source is MIT licensed; that license does not apply to the game or Microsoft runtime code.
