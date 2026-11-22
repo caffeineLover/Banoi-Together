@@ -1,0 +1,16 @@
+{
+  "product": "DIDE-CoopQuestActivity",
+  "schemaVersion": 1,
+  "version": "0.1.0-test.1",
+  "appId": "383150",
+  "channel": "test",
+  "file": { "name": "xinput1_3.dll", "sha256": "GENERATED_BY_BUILD_PACKAGE" },
+  "supportedBinaries": {
+    "gamedll_x64_rwdi.dll": "D10C7F59AD3BF62E7F2DD69CD7E49EB634D4E8D046E4F4C07463B5D589833545",
+    "engine_x64_rwdi.dll": "7CF1F0153A2748DA55A36D89FCF2E451BA444468260355836722D3EF76B27C79"
+  },
+  "legacyHashes": [
+    "A55C4CD28F4274878B4FA1F3B2E67C217BBD7D732C3ADDB9F6CFFC43129D943E",
+    "9B6DBC4011ECD1D798C6095A1CB24DBF9C7694DA9E7EF6046E95E59935BE154D"
+  ]
+}

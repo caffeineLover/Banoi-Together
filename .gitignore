@@ -1,0 +1,16 @@
+/dist/
+/tests/.tmp/
+/poc/build/
+/research/smoke-build/
+/.superpowers/
+*.dll
+*.exe
+*.obj
+*.lib
+*.exp
+*.pdb
+*.ilk
+*.log
+*.pak
+*.zip
+*.tmp

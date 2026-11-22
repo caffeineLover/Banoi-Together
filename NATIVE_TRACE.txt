@@ -1,0 +1,119 @@
+Co-op Quest Alert native chat experiment
+Historical first-prototype trace. Current extension: ACTIVITY_TRACE.txt.
+2026-11-22. Static trace before native hook implementation.
+
+Scope
+Observe local confirmed acceptance and reuse ordinary game chat. No custom
+networking, HUD, dialogue synchronization, quest-state writes, or archive edits.
+This is a throwaway experiment for the exact installed x64 Steam binaries.
+No live acceptance, chat transmission, or remote delivery has been verified yet.
+
+Binary identity
+gamedll_x64_rwdi.dll SHA256:
+D10C7F59AD3BF62E7F2DD69CD7E49EB634D4E8D046E4F4C07463B5D589833545
+engine_x64_rwdi.dll SHA256:
+7CF1F0153A2748DA55A36D89FCF2E451BA444468260355836722D3EF76B27C79
+All addresses below are RVAs relative to the named loaded DLL, not absolute VAs.
+The preferred image base used by dumpbin is 0x180000000.
+Names beginning sub_ are descriptive analytical labels, not exported APIs.
+
+Planned hook 1: MenuAcceptQuest button handler
+gamedll RVA 0x003FB7A0; RTTI-identified MenuAcceptQuest main vtable at 0x00DCD8A8,
+slot +0x9A0 (slot storage RVA 0x00DCE248).
+Observed ABI: void handler(void* screen, void* pressedControl).
+Initialization references "B_Accept" and stores that control at screen+0x3B0.
+It stores B_Reject at +0x3B8 and G_QuestName/T_Name (IUIText) at +0x3D0.
+The handler compares pressedControl with those exact stored pointers.
+
+For mode dword(screen+0x490)==1, Accept calls sub_00137A60 with a string at
+screen+0x498. That string identifies a dialogue/briefing selection; it MUST NOT
+be assumed to be a quest ID. The routine resolves the selected entry and calls
+sub_007CC890 with its quest-name string and false for the blocked flag.
+sub_007CC890 clears bit 0x08 in quest+0x70. If eligible and not already active/
+finished, it calls sub_007BA680. The initial PoC will only arm this traced mode.
+
+The other mode calls sub_0066EE00(player,0) for Accept or (player,1) for Reject.
+That routine has ownership/availability guards and only writes a dialogue
+choice at +0xC0. This is NOT a proven synchronous quest commit. The experiment
+will log unsupported mode rather than send on this choice write.
+
+Commit and planned hook 2
+sub_007BA680 checks quest+0x3C==0, a phase/root pointer at +0x40, and blocked bit.
+At RVA 0x007BA6F4 it writes dword(quest+0x3C)=1, starts the phase, then calls
+GameDI virtual slot +0xBB8 at instruction RVA 0x007BA784.
+GameDI RTTI main vtable RVA 0x00D01CE8 has that slot pointing to 0x001018C0;
+slot storage RVA 0x00D028A0.
+Observed callback ABI: void callback(void* game, void* quest).
+This callback is after the native state write and phase-start call. It is
+also used by other quest starts, so the PoC MUST require a thread-local scope
+armed by the exact local B_Accept handler above and state==1. Both original
+handlers are called exactly once. The alert is sent after the original button
+handler returns and only if that scoped commit callback was observed.
+This is static evidence of commit for this branch, not a completed live test.
+
+Quest identification
+Quest RTTI vtable at 0x00EE5A08 slot 0 calls 0x0085B000, which returns quest+0x10
+(a narrow ttl::string_base record). Slot +0x70 calls 0x0085AFE0, which reads the
+numeric ID at quest+0x08. The PoC can log both without changing the quest.
+
+Displayed/localized title
+The screen's +0x3D0 pointer is dynamically cast to IUIText in initialization.
+In mode 1, the title-population code constructs &<quest-name>_Name&, calls the
+localization interface at virtual +0x178, and passes the resulting wide string
+to that text control (RVA 0x003FA101 through 0x003FA1BF).
+The engine exports the exact symbol:
+?GetTextExplicit@IUIText@@UEAAAEBV?$string_base@_W@ttl@@XZ
+at engine RVA 0x0055B810. It returns a reference to the wide text record.
+The PoC copies this existing displayed value before the screen closes; it does
+not hardcode the Exodus title or treat an untranslated resource token as text.
+
+Ordinary chat transmission, not a fabricated packet
+gamedll sub_0021E130 is the existing chat edit-box submission path. At 0x21E182
+it obtains game from global RVA 0x012822A8, session from game+0x4A0, and the local
+context from session virtual +0x7B8. It passes the edit box's UTF-16 ttl string
+and chat mode to sub_0011E940 at instruction 0x0021E1BC.
+Observed sender ABI: void sender(void* localContext, const WideString*, int mode).
+The context is the same local-player context used by the normal UI; it is NOT
+the GameDI pointer itself. The PoC will obtain it identically to the stock UI.
+The sender enumerates normal recipients and calls sub_00132AB0, which uses
+sub_00105450 for a remote recipient or sub_001055F0 for local delivery.
+sub_00105450 constructs the game's existing type-1 UTF-16 chat packet and calls
+IGame::MsgSend. The PoC calls the high-level stock sender; it constructs no
+packets and does not call MsgSend directly or manufacture a sender identity.
+The same sender is used at RVA 0x0012D9C8 with chat mode 1.
+The chat header switch at 0x0021EF1E maps mode 0 to Hud_Chat_SayAll,
+1 to Hud_Chat_Yell, 2 to SayAllies, and 3 to Whisper. The PoC uses mode 0.
+
+Hook installation plan
+A small xinput1_3.dll proxy forwards the three XInput functions used by the
+installed engine (imports by ordinal 2/3/4, verified against System32 exports:
+GetState/SetState/GetCapabilities) to the system DLL. A worker waits for the
+two game modules, verifies their full on-disk SHA256 values and original vtable
+slot values, then replaces only the two documented vtable pointers in memory.
+No inline instruction patches, external hook library, original DLL edits, CRC
+bypasses, or PAK files are required. Process exit removes the memory changes.
+
+Validation gates and failure labels
+1 acceptance detection: local B_Accept, supported mode, scoped state-1 callback.
+2 quest identification: native string and numeric ID from the committed quest.
+3 title resolution: nonempty copied explicit UTF-16 title from the screen.
+4 chat send: call the exact normal sender using its stock local context.
+5 remote delivery: another player observes ordinary correctly attributed chat.
+A sender return alone does not prove packet emission or remote delivery.
+
+Live test needed
+Load the DLL on the accepting machine only. In a private two-player session,
+accept a currently available quest; compare the experiment log's committed ID,
+displayed title, and send stage with the other player's unmodified chat/HUD.
+Repeat with roles reversed, installing the observer on that accepting machine.
+No game was running when the static trace was written. The game has since
+launched with matching native fingerprints and both hooks reported READY.
+No acceptance or two-player delivery test has passed yet. If runtime uses the
+untraced mode, acceptance detection is
+the first unresolved link and the experiment must report it explicitly.
+
+Reproduction
+research/PeImage.cs parses PE sections, imports, x64 RTTI and runtime functions.
+research/Inspect.ps1 locates strings and references.
+research/Disasm.ps1 invokes installed Microsoft dumpbin and annotates imports.
+These inspection utilities only read the game binaries.

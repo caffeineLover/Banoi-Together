@@ -1,0 +1,94 @@
+name: Test build and release
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*-test*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Compile x64 observer
+        shell: cmd
+        run: poc\build.cmd
+      - name: Verify proxy forwarding and unsupported-build refusal
+        shell: cmd
+        run: research\smoke_test.cmd
+      - name: Test installer with Steam/game fixtures
+        shell: powershell
+        run: ./tests/Installer.Tests.ps1
+      - name: Package and test extracted installer
+        shell: powershell
+        env:
+          BUILD_REF_TYPE: ${{ github.ref_type }}
+          BUILD_REF_NAME: ${{ github.ref_name }}
+        run: |
+          $version = (Get-Content ./package/version.json -Raw | ConvertFrom-Json).version
+          if ($env:BUILD_REF_TYPE -eq 'tag') {
+            if ($env:BUILD_REF_NAME -notmatch '^v(\d+\.\d+\.\d+-test(?:\.\d+)?)$') {
+              throw 'Expected a test tag such as v0.1.0-test.1.'
+            }
+            $version = $Matches[1]
+          }
+          ./tests/Package.Tests.ps1 -Version $version
+      - name: Upload installable test package
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-package
+          path: |
+            dist/*.zip
+            dist/*.zip.sha256
+          if-no-files-found: error
+
+  draft-release:
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    needs: build
+    runs-on: windows-2022
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: test-package
+          path: dist
+      - name: Prepare draft prerelease only
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TEST_TAG: ${{ github.ref_name }}
+        run: |
+          $zip = "dist/DIDE-CoopQuestActivity-$env:TEST_TAG.zip"
+          $checksum = "$zip.sha256"
+          if (-not (Test-Path -LiteralPath $zip) -or -not (Test-Path -LiteralPath $checksum)) {
+            throw 'The exact tagged ZIP and checksum are missing.'
+          }
+          $releases = gh release list --limit 100 --json tagName,isDraft
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect existing releases.' }
+          $existing = @($releases | ConvertFrom-Json) | Where-Object { $_.tagName -eq $env:TEST_TAG }
+          if ($existing) {
+            if (-not $existing.isDraft) {
+              throw 'Refusing to change an already published release.'
+            }
+            gh release upload $env:TEST_TAG $zip $checksum --clobber
+          } else {
+            gh release create $env:TEST_TAG $zip $checksum --draft --prerelease --verify-tag --title "Banoi Together $env:TEST_TAG" --notes-file RELEASE_NOTES.md
+          }
+          if ($LASTEXITCODE -ne 0) { throw 'Draft release preparation failed.' }

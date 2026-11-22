@@ -1,0 +1,157 @@
+Quest Activity v0.1 investigation - 2026-11-22
+
+Status and development gate
+The previous DLL reached READY in the actual game. No quest acceptance or
+remote-delivery result has been recorded. This extension remains a diagnostic
+experiment, not v0.1. Acceptance stays restricted to the proven synchronous
+mode. Completion is observed in the log but MUST NOT send chat until local
+causation is established. Duplicate suppression follows the live event -> ID
+-> title -> stock chat -> vanilla delivery proof. Subsequent authorization
+allows installer/repository/CI preparation now; no test Release publication
+until A's local acceptance-to-chat chain is verified.
+
+Binary identities and original acceptance/chat trace: NATIVE_TRACE.txt.
+All addresses below are gamedll_x64_rwdi.dll RVAs for that exact binary.
+sub_ labels describe disassembly; they are not exported names.
+
+Additional static evidence
+1. Quest state accessor 0x007BA3C0 reads quest+0x3C. The existing start
+   routine writes 1 at 0x007BA6F4. The normal quest update 0x007BA860 tests
+   state 1, invokes root-phase virtual +0x480, and, if it succeeds, writes
+   2 at 0x007BA8AF and calls 0x007BBF50 at 0x007BA8B6.
+2. Other native finish routes also write 2 then call 0x007BBF50, including
+   0x007BA8D0, 0x007BA950, 0x007C50A0, 0x007C7490, 0x007CD9D0 and a
+   route in 0x00816E79. Therefore a finish notification is not by itself
+   proof of a local player's turn-in. Some routes can force/start/finish
+   quests; the observer must never invoke them.
+3. 0x007BBF50 calls GameDI virtual +0xBC8 at 0x007BBF66 (return RVA
+   0x007BBF6C). Main GameDI vtable 0x00D01CE8 +0xBC8 is storage
+   0x00D028B0, pointing to 0x00101A20. ABI observed from callers:
+   void callback(void* game, void* quest). There is no actor argument.
+4. RTTI verifies Quests::Quest at vtable 0x00EE5A08 and
+   Quests::TalkPhase at main vtable 0x00F016B8. TalkPhase virtual +0x480
+   is 0x00806620; +0x478 is 0x00806EA0. The check uses dialogue group,
+   speaker and participant data. 0x00807B40 obtains the session's local
+   context (session virtual +0x7B8), then 0x00115450 for a speaker, caching
+   a smart-pointer pair at phase+0x140/+0x148. This is evidence of useful
+   dialogue context, NOT yet proof that this context is the initiating
+   player on both host and client. No completion send is authorized by it.
+5. RTTI also identifies Quests::Replication::QuestState and
+   QuestStateContainer at main vtables 0x00F10A08 and 0x00F11258.
+   Existence of replicated state does not identify its initiator. Native
+   state reconstruction/forced completion routes are reasons not to
+   broadcast every observed active/finished state.
+6. Actual exported quest-manager spelling is IGame::GetIQuestManager,
+   not GetQuestManager (engine export RVA 0x0000A820 is a shared default
+   implementation). A symbol name/default stub is insufficient evidence
+   to call or hook it as the game's concrete manager. Further vtable tracing
+   identifies GameDI +0x3D8 -> 0x00103270. It initializes the same quest
+   singleton if necessary and returns 0x01326E10. This is the concrete
+   manager accessor at the corresponding interface slot; the diagnostic
+   does not need to hook or call it. That singleton's +0x88 mode
+   is changed by the forced-finish route. Diagnostics record its raw value
+   without inventing meanings for all enum values.
+
+Acceptance target correction before extending the experiment
+The existing start callback fires after phase startup. Startup can itself
+activate other quests before the selected quest's callback. Capturing merely
+the first scoped start could therefore select the wrong ID. The extension
+must resolve the exact selected quest name BEFORE calling the button handler
+and only capture a matching callback.
+The stock mode-1 button handler calls 0x00137A60. It calls 0x00139BF0 with
+this=0x01244BD8 and the selection string at screen+0x498. The returned record
+selects a signed 16-bit index at -0xBE if byte -0x54 is nonzero, otherwise
+-0xC0. Index bounds: dword -0x68. Row array pointer: -0x70; stride: 0x38.
+The row's narrow ttl string is exactly the argument subsequently passed to
+0x007CC890. The extension may call the read-only lookup and copy that name;
+it must not call the unblocking/start routine itself. Reject unresolved or
+nonmatching targets. The displayed title is still copied before the menu
+closes using the existing verified IUIText::GetTextExplicit export.
+
+Exact diagnostic hooks, documented before implementation
+A. Retain MenuAcceptQuest +0x9A0 / 0x003FB7A0 and GameDI +0xBB8 /
+   0x001018C0. Require mode 1, exact B_Accept, exact resolved target name,
+   exact post-start return RVA 0x007BA78A and state 1. No announcement
+   merely for a button or an unscoped callback. Original functions run once.
+B. Add GameDI +0xBC8 / 0x00101A20 at storage 0x00D028B0. Log quest ID,
+   name, state, parent/root pointers, manager mode and stack RVAs. Call the
+   original once. NEVER send completion chat from this diagnostic hook.
+C. Add a forwarding hook at the MsgSend import slot 0x00C7E8B0.
+   Exact exported ABI: void IGame::MsgSend(unsigned int,const byte*,unsigned
+   int). With this pointer: void(game,recipient,data,size). Verify slot equals
+   engine export ?MsgSend@IGame@@QEAAXIPEBEI@Z before replacing it.
+   Only log calls returning to 0x001054C6, the stock remote chat producer.
+   It writes byte 1 at packet+0, chat mode at +1, then UTF-16 at +2 before
+   calling this import. Do not alter, create, resend or suppress packets.
+   This proves a stock chat handoff, not remote receipt.
+D. Add stack/ID diagnostics to unscoped start callbacks too. They never
+   cause chat; they expose loading, automatic activation and remote-action
+   paths for comparison. No polling, time-based intent guessing, persistent
+   history or replicated-state broadcasting is introduced.
+E. Add a forwarding observation of TalkPhase virtual +0x480, storage
+   0x00F01B38, original 0x00806620. Caller 0x007BA881 invokes this as
+   bool(phase). Only after the original returns true, log the associated
+   quest at phase+0x70, native speaker cache +0x140/+0x148, raw speaker
+   pointer +0x2A0 and integer +0x2A8, and local context/player +0xA90.
+   From that player's observed dialogue pair +0xEC8/+0xED0, record the
+   participant +0x78/+0x80 checked in 0x0066EE00. Do not assume the raw
+   speaker fields are another smart-pointer pair; their meaning is unproven.
+   These are read-only candidate correlations;
+   equality must NOT yet authorize chat. Cap this diagnostic to 128 lines
+   per process to avoid logging every repeated readiness check. This is
+   diagnostic sampling, not the eventual activity duplicate-suppression rule.
+   Log the mode-0 screen's player/dialogue pointer and choice before/after
+   the original click handler too; no mode-0 announcement is added.
+
+State 2 means the quest reached its native finish path. It is not, alone,
+proof of a successful player turn-in; the successful/failed outcome and
+initiating actor must both be established before any completion send.
+
+Unchanged normal chat path and receive evidence
+Call 0x0011E940 with the same local context and SayAll mode 0 as the stock
+chat UI (0x0021E130). Do not prepend names. Stock remote producer 0x00105450
+hands off to engine IGame::MsgSend. Its chat consumer 0x001054F0 takes the
+network sender target, uses engine IGame::ReplGetTargetId and 0x0012E940,
+then calls normal local chat delivery 0x001055F0. Further tracing identifies
+the concrete GameDI incoming dispatcher at virtual +0x268 -> 0x00105330.
+For packet byte 1 it advances data by one byte and decrements the byte count,
+then tail-calls virtual +0xC48 at 0x0010539F. That slot is 0x001054F0.
+The corresponding engine IGame base slot points to its default no-op at
+0x00030420. This verifies the concrete dispatch-to-chat path; hooking the
+default exported OnMsgReceived would miss it. Correct identity and remote
+vanilla HUD behavior still require observations on the receiving PC.
+
+Smallest live experiment
+Use the same diagnostic DLL on A and B; C stays completely vanilla. Establish
+ordinary manual chat. A accepts one offered quest; compare exact ID/name/title,
+matching scoped commit, stock MsgSend handoff, and both remote chat displays.
+Then A turns in one ready quest and C performs a quest action while A and B
+only observe. Compare the finish/start stacks and talk context. Do not expect a
+completion message from this diagnostic build. Repeat with A joining another
+host to establish whether the initiating-client path is different.
+Repeat with B acting and A observing. The earlier A-only suggestion is
+superseded so preparation consistently uses the user's A/B modded, C vanilla
+topology. B's installation/readiness still requires verification on that PC.
+
+Only after this evidence: implement a narrowly correlated completion observer
+(or report it blocked), then minimal in-process duplicate suppression keyed
+by proven event kind and quest identity, with a baseline for load/rejoin.
+No public v0.1 package or GitHub Release until the user-specified A/B/C matrix
+is tested. C must remain without any observer. A diagnostic test package is
+now separately authorized: see the updated release gates in ACTIVITY_TESTING.txt.
+
+Actual runtime evidence for diagnostic 2
+Installed artifact SHA256:
+9B6DBC4011ECD1D798C6095A1CB24DBF9C7694DA9E7EF6046E95E59935BE154D
+Steam launch reached READY for all five hooks in PID 53008, with both expected
+native hashes. The process loaded the proxy from the game directory and was
+responsive. Data0/Data1/Data2 hashes still match the original baseline.
+After the player entered the game, the log contained 70 start callbacks and
+21 finish callbacks, all outside the local Accept scope, plus one talk-ready
+sample for internal ACT1A_Sinamoi_Busy (uid 42). There was no Accept button,
+automatic sender call or stock chat handoff in this observed interval.
+Stacks on the numerous callbacks include 0x007C74D0/0x007C72E3/0x007C2600,
+managerMode=3. These are consistent with state reconstruction on entry,
+not evidence that 91 player actions occurred. The reconstructed native ID
+and name fields are now observed at runtime; successful local quest action,
+selected-title accuracy and remote chat delivery are still untested.
