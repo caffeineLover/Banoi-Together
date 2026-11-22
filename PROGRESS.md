@@ -8,6 +8,18 @@ Last updated: **2026-11-22, America/New_York**. This is the authoritative develo
 
 This proves one local acceptance path. **The active milestone is now remote acceptance delivery in both directions: A -> B/C, then B -> A/C, with C completely vanilla. Remote receipt is untested. Completion announcements remain disabled and no further reverse engineering is requested for this phase.** The child-quest acceptance variant is tested offline but has not passed a live test. General duplicate suppression and the full v0.1 matrix remain outstanding. The successful solo run's log is preserved.
 
+### Shutdown handoff
+
+**2026-11-22, 17:27 local: the user is shutting down the laptop; coordinated testing is paused until the players are ready.** No new remote acceptance observations have been reported. Do not mark either direction passed or assume B has installed the corrected release.
+
+- **Keep the working build:** test.2 is published and its publicly downloaded DLL matches A's tested hash `761A3124AC68F1DCC1AB8312BA5102E8046D5F9F708BF9A7F0708AEC158E4E87`. A already has that DLL; rebooting does not require reinstalling it or repeating solo validation. Do not rebuild or replace the immutable Release assets.
+- **Resume with the full [README procedure](./README.md#remote-acceptance-test):** confirm B installed that Release, keep C completely vanilla, launch A/B and verify fresh READY diagnostic 3, then have B/C join A. Confirm manual chat reception among all three.
+- **The actual next quest action is A accepting a new, naturally offered NPC quest.** B and C must each see exactly one automatic announcement with A's normal sender attribution and the correct title. Record that before B accepts a different offered quest and A/C check B's announcement. Do not manually type the automatic messages. The Lost is already accepted on A and cannot simply be reused.
+- **Preserve evidence and update this record:** A/B current-run logs plus each receiver's title, sender, count and approximate time. Both remote rows below remain NOT TESTED. On failure, stop before taking another quest and identify the first broken boundary.
+- **No completion work or further reverse engineering now.** Remaining acceptance controls follow only after both remote directions pass.
+
+The successful solo evidence is already copied into the persistent local snapshot `.superpowers/live-test-2026-11-22/A-diagnostic3-The-Lost.log`, with selected evidence included below on GitHub. No separate handoff document is needed. Quit the game normally before shutting down.
+
 ### Keep this record current
 
 - Update this file after every meaningful investigation, code change, build, installation, or gameplay test. Record what worked, what failed, evidence, exact build identity, unresolved questions, and the next smallest step.
