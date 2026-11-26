@@ -8,9 +8,21 @@ The long-term goal is to make playing through the campaign with friends feel mor
 
 ## Current test result
 
+Diagnostic 3 passed two-way remote quest acceptance with A and B modded and Morty (C) vanilla. A's EXODUS announcement reached B/C, and B's LAZARUS RISING announcement reached A/C.
+
+## Test.3 setup and turn-in capture
+
+1. Close the game, extract the whole test.3 ZIP and double-click **`Setup Banoi Together.cmd`**. Choose **1. Install or upgrade**, then enter **A** for Peter or **B** for Hannah. Approve the Windows prompt if asked and wait for **Setup complete**. Leave the `Support - Do Not Run` folder alongside the launcher. C installs nothing.
+2. Launch from Steam under the same Windows account you used for setup. Open `DIDEQuestChatPoC-A.log` or `DIDEQuestChatPoC-B.log` on your Desktop. Check the newest startup line for `tester=A` or `tester=B` and `log=Desktop`, then `READY diagnostic 4`. If no Desktop log appears, check `%TEMP%` for the same filename and report the fallback.
+3. Validate test.3 on A first. Accept a fresh NPC quest and confirm one correctly titled acceptance line in local chat. At a natural quest turn-in, note the exact displayed title and local time, complete the turn-in as usual, and preserve the Desktop log. Report what changed in the game or quest journal. Completion is trace-only in test.3.
+
+To uninstall test.3, close the game, open the same launcher, choose **2. Uninstall**, and confirm. For a custom game directory, you can run `& '.\Setup Banoi Together.cmd' -GamePath 'D:\SteamLibrary\steamapps\common\DIDE'` from the extracted folder in PowerShell.
+
+## Published test.2 reference
+
 **Diagnostic 3 / `v0.1.0-test.2` uses the exact DLL that passed one local acceptance-to-chat test on Client A.** Peter accepted **The Lost**, and the game displayed the automatic message with normal **Phaedruss** sender attribution. The log confirms native quest ID 372, the copied displayed title `THE LOST`, the committed local offer phase, and one ordinary chat send with body `accepted "THE LOST"`. The mod does not prepend a name.
 
-**Remote delivery is still untested for this corrected build. Completion announcements are disabled.** Unsupported or unconfirmed paths send nothing. General duplicate handling and other acceptance paths still need testing. This is not the finished v0.1 mod.
+**Remote acceptance delivery passed in both directions. Completion announcements are disabled.** Unsupported or unconfirmed paths send nothing. General duplicate handling and other acceptance paths still need testing.
 
 This DLL is already installed on Peter's laptop (**always Client A**). Its SHA-256, also required inside the release ZIP and on B, is:
 
@@ -28,7 +40,7 @@ For the next coordinated test, A and B must use the same corrected package; C in
 
 1. Download [DIDE-CoopQuestActivity-v0.1.0-test.2.zip](https://github.com/caffeineLover/Banoi-Together/releases/download/v0.1.0-test.2/DIDE-CoopQuestActivity-v0.1.0-test.2.zip) from the [test prerelease](https://github.com/caffeineLover/Banoi-Together/releases/tag/v0.1.0-test.2). Use the same Release ZIP on A and B; A may keep its already-installed matching DLL. The repository's automatically generated **Source code** ZIP is not an installable package.
 2. Exit the game and extract **all** files into a folder.
-3. Double-click `Install.cmd`. Approve Windows' administrator prompt if required. Require a final `SUCCESS` message. No compiler, SDK, external loader or separate Visual C++ runtime installation is needed on B.
+3. In the published test.2 ZIP, double-click `Install.cmd`. Approve Windows' administrator prompt if required and wait for `SUCCESS`.
 4. Launch normally through Steam. Install nothing on **C**, the vanilla receiver/control.
 
 The installer searches Steam's registered location and library list, verifies the x64 executable and both supported native DLL fingerprints, and installs only `xinput1_3.dll` plus its ownership receipt. A temporary recovery journal restores the previous installation if a write fails; rerun install/uninstall after an interrupted process to recover. It refuses another mod's proxy and upgrades only a matching owned/known build. It never writes any original game file, including `Data0.pak`, `Data1.pak` or `Data2.pak`.

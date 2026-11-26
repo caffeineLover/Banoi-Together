@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Version='0.1.0-test.2')
+param([string]$Version='0.1.0-test.3')
 $ErrorActionPreference='Stop'
 $repo=Split-Path $PSScriptRoot -Parent
 $builder=Join-Path $repo 'tools\Build-Package.ps1'
@@ -9,13 +9,14 @@ $zipPath=Join-Path $repo "dist\DIDE-CoopQuestActivity-v$Version.zip"
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $archive=[IO.Compression.ZipFile]::OpenRead($zipPath)
 try {
-    $expected=@('Install.cmd','Install.ps1','Installer.Common.ps1','LICENSE','README.md','Uninstall.cmd','Uninstall.ps1','version.json','xinput1_3.dll') | Sort-Object
-    $actual=@($archive.Entries | ForEach-Object { $_.FullName }) | Sort-Object
+    $support='Support - Do Not Run/'
+    $expected=(@('Setup Banoi Together.cmd','LICENSE','README.md') + @('Setup.ps1','Install.ps1','Installer.Common.ps1','Uninstall.ps1','version.json','xinput1_3.dll' | ForEach-Object { $support+$_ })) | Sort-Object
+    $actual=@($archive.Entries | ForEach-Object { $_.FullName.Replace('\','/') }) | Sort-Object
     if(($actual -join '|') -cne ($expected -join '|')) { throw ('Unexpected ZIP content: '+($actual -join ', ')) }
-    $reader=[IO.StreamReader]::new($archive.GetEntry('version.json').Open())
+    $reader=[IO.StreamReader]::new(($archive.Entries | Where-Object { $_.FullName.Replace('\','/') -ceq ($support+'version.json') }).Open())
     try { $metadata=$reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
     if($metadata.version -ne $Version) { throw 'Wrong version in package' }
-    $payload=$archive.GetEntry('xinput1_3.dll').Open()
+    $payload=($archive.Entries | Where-Object { $_.FullName.Replace('\','/') -ceq ($support+'xinput1_3.dll') }).Open()
     $hasher=[Security.Cryptography.SHA256]::Create()
     try { $hash=[BitConverter]::ToString($hasher.ComputeHash($payload)).Replace('-','') }
     finally { $hasher.Dispose(); $payload.Dispose() }
@@ -27,7 +28,9 @@ if(-not $checksum.StartsWith((Get-FileHash -LiteralPath $zipPath).Hash)) { throw
 $extract=Join-Path $repo ('tests\.tmp\extracted-'+[guid]::NewGuid().ToString('N'))
 [IO.Compression.ZipFile]::ExtractToDirectory($zipPath,$extract)
 try {
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Installer.Tests.ps1') -ExtractedPackage $extract
+    $cancel='Q' | & (Join-Path $extract 'Setup Banoi Together.cmd')
+    if($LASTEXITCODE -ne 0 -or ($cancel -join ' ') -notmatch 'Install or upgrade.*Uninstall.*Quit') { throw 'Setup menu did not open and exit cleanly' }
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Installer.Tests.ps1') -ExtractedPackage (Join-Path $extract 'Support - Do Not Run')
     if($LASTEXITCODE -ne 0) { throw 'Extracted-package installer integration tests failed' }
 } finally {
     $allowed=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '.tmp')).TrimEnd('\')+'\'

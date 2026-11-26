@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Version='0.1.0-test.2',[string]$DllPath,[string]$OutputDirectory)
+param([string]$Version='0.1.0-test.3',[string]$DllPath,[string]$OutputDirectory)
 $ErrorActionPreference='Stop'
 $repo=Split-Path $PSScriptRoot -Parent
 if($Version -notmatch '^\d+\.\d+\.\d+-test(?:\.\d+)?$') { throw 'Use a test version such as 0.1.0-test.1.' }
@@ -13,11 +13,14 @@ $stage=Join-Path $OutputDirectory ('stage-'+[guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($stage) | Out-Null
 try {
     $template=Join-Path $repo 'package'
-    foreach($name in @('Install.ps1','Uninstall.ps1','Installer.Common.ps1','Install.cmd','Uninstall.cmd')) {
-        Copy-Item -LiteralPath (Join-Path $template $name) -Destination (Join-Path $stage $name)
+    $support=Join-Path $stage 'Support - Do Not Run'
+    [IO.Directory]::CreateDirectory($support) | Out-Null
+    foreach($name in @('Setup.ps1','Install.ps1','Uninstall.ps1','Installer.Common.ps1')) {
+        Copy-Item -LiteralPath (Join-Path $template $name) -Destination (Join-Path $support $name)
     }
+    Copy-Item -LiteralPath (Join-Path $template 'Setup Banoi Together.cmd') -Destination $stage
     foreach($name in @('README.md','LICENSE')) { Copy-Item -LiteralPath (Join-Path $repo $name) -Destination (Join-Path $stage $name) }
-    Copy-Item -LiteralPath $DllPath -Destination (Join-Path $stage 'xinput1_3.dll')
+    Copy-Item -LiteralPath $DllPath -Destination (Join-Path $support 'xinput1_3.dll')
     $metadata=Get-Content -LiteralPath (Join-Path $template 'version.json') -Raw | ConvertFrom-Json
     $nativeSource=Get-Content -LiteralPath (Join-Path $repo 'poc\quest_chat.cpp') -Raw
     foreach($name in @('gamedll_x64_rwdi.dll','engine_x64_rwdi.dll')) {
@@ -27,9 +30,9 @@ try {
     $metadata.file.sha256=(Get-FileHash -LiteralPath $DllPath -Algorithm SHA256).Hash
     $metadata | Add-Member -NotePropertyName nativeSourceSha256 -NotePropertyValue (Get-FileHash -LiteralPath (Join-Path $repo 'poc\quest_chat.cpp') -Algorithm SHA256).Hash
     if($env:GITHUB_SHA) { $metadata | Add-Member -NotePropertyName sourceCommit -NotePropertyValue $env:GITHUB_SHA }
-    [IO.File]::WriteAllText((Join-Path $stage 'version.json'),($metadata | ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
-    . (Join-Path $stage 'Installer.Common.ps1')
-    Read-DidePackage $stage | Out-Null
+    [IO.File]::WriteAllText((Join-Path $support 'version.json'),($metadata | ConvertTo-Json -Depth 6),[Text.UTF8Encoding]::new($false))
+    . (Join-Path $support 'Installer.Common.ps1')
+    Read-DidePackage $support | Out-Null
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip=Join-Path $OutputDirectory "DIDE-CoopQuestActivity-v$Version.zip"
     # Write a new file first, then replace only this named build output.

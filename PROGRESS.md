@@ -1,14 +1,23 @@
 # Banoi Together progress and agent handoff
 
-Last updated: **2026-11-22, America/New_York**. This is the authoritative development record. Read it before changing the mod. Installation and build instructions are in [README.md](./README.md).
+Last updated: **2026-11-26, America/New_York**. This is the authoritative development record. Read it before changing the mod. Installation and build instructions are in [README.md](./README.md).
 
 ## Current result
 
 **Client A's local acceptance-to-chat test passed for The Lost using diagnostic 3 / `0.1.0-test.2`.** Peter accepted the NPC offer and saw a normal chat line attributed to **Phaedruss**. The log independently confirms local ownership, the same dialogue resource, quest `Steffen_Q1` / UID `372`, the copied displayed title `THE LOST`, a committed offer-phase transition, and exactly one stock sender call with `accepted "THE LOST"`.
 
-This proves one local acceptance path. **The active milestone is now remote acceptance delivery in both directions: A -> B/C, then B -> A/C, with C completely vanilla. Remote receipt is untested. Completion announcements remain disabled and no further reverse engineering is requested for this phase.** The child-quest acceptance variant is tested offline but has not passed a live test. General duplicate suppression and the full v0.1 matrix remain outstanding. The successful solo run's log is preserved.
+**Remote acceptance delivery passed in both directions on diagnostic 3.** A accepted EXODUS and B/C saw the announcement. B accepted LAZARUS RISING and A/C saw the announcement. See the [remote acceptance test record](#remote-acceptance-test-record) for sender evidence and remaining verification. The next gameplay capture is a natural quest turn-in on A. Completion announcements remain disabled.
 
-### Shutdown handoff
+### Test.3 installer and next capture
+
+Built `dist/DIDE-CoopQuestActivity-v0.1.0-test.3.zip` locally. The single `Setup Banoi Together.cmd` launcher offers install/upgrade and uninstall. Supporting files are in `Support - Do Not Run`. Setup saves A/B in the Windows account that launched it. Diagnostic 4 opens `DIDEQuestChatPoC-A.log` or `DIDEQuestChatPoC-B.log` on that account's Windows Desktop and identifies the tester in the startup line. An inaccessible Desktop falls back to the labeled file in `%TEMP%`.
+
+- DLL SHA-256: `00F700C4BC8DDCE961B2FAB64904F63CE7C6046776642233DFDFD104A0FF19FF`
+- ZIP SHA-256: `63B5331A7570B5529867C29D87EF96ACF32B227E5A025157526C7BBF678CB504`
+- Offline checks passed: x64 build, acceptance correlation, XInput forwarding and wrong-build refusal, package checksum and contents, launcher quit, and 18 extracted-package installer cases.
+- Next on A: install test.3, check the Desktop log for `tester=A`, `log=Desktop`, and `READY diagnostic 4`, then verify one normal local acceptance announcement with the new DLL. Capture one natural quest turn-in and record the exact displayed title, local time, and observed outcome. Capture uses the existing finish observer. Local causation and the completion title path still need to be established before sending completion chat. B can upgrade after the local acceptance check on A. Test.3 has not yet been run in the game.
+
+### Historical shutdown handoff
 
 **2026-11-22, 17:27 local: the user is shutting down the laptop; coordinated testing is paused until the players are ready.** No new remote acceptance observations have been reported. Do not mark either direction passed or assume B has installed the corrected release.
 
@@ -92,17 +101,19 @@ Use the full ten-step [README remote test](./README.md#remote-acceptance-test). 
 | Preflight item | Current evidence |
 | --- | --- |
 | A installed DLL equals the required Release payload hash | PASS at preparation; exact hash above; prior The Lost solo gameplay pass |
-| B installed DLL equals that same hash | Pending installation and confirmation on B |
-| Fresh current-session READY diagnostic 3 on A and B | Pending launch/session; old solo READY is not fresh-session evidence |
-| C completely vanilla | Required topology; confirm before the session |
+| B installed DLL equals that same hash | B log confirms diagnostic 3; installed hash was not supplied |
+| Fresh current-session READY diagnostic 3 on A and B | Present in the supplied logs |
+| C completely vanilla | C (Morty) served as the vanilla receiver in both probes |
 | A manual test visible with correct sender on B and C | Pending explicit receiver observations |
 | B manual test visible with correct sender on A and C | Pending explicit receiver observations |
 | C manual test visible with correct sender on A and B | Pending explicit receiver observations |
 
 | Automatic probe | Quest title / time | Sender's native log | Receiver observations | Result |
 | --- | --- | --- | --- | --- |
-| A accepts -> B and vanilla C | Not run | Not collected | B: pending; C: pending; require exactly one correct body/sender on each | NOT TESTED |
-| B accepts -> A and vanilla C | Not run | Not collected | A: pending; C: pending; require exactly one correct body/sender on each | NOT TESTED |
+| A accepts -> B and vanilla C | EXODUS | `ACT1A_ClearRescueHub`, UID 39, tick 333168437; one `accepted "EXODUS"` call and two remote handoffs | User reported that Hannah (B) and Morty (C) saw A's announcement | PASS (remote receipt) |
+| B accepts -> A and vanilla C | LAZARUS RISING | `ACT1A_Car_Repair`, UID 356, tick 1266309718; one `accepted "LAZARUS RISING"` call and two remote handoffs | User reported that A and Morty (C) saw Hannah's announcement | PASS (remote receipt) |
+
+Receiver-side copy counts, exact on-screen text, and wall-clock times were not separately reported. The one-send count is from each sender's log. For future builds, the user requested logs on each tester's Windows Desktop with the tester role (A or B) in the filename and log. Test.2 continues to use its existing temporary-directory log.
 
 Preserve complete current-run logs from A and B under unique local snapshot names, with host, accepting player, native ID/name, displayed title, approximate time, automatic-send/handoff counts, and each receiver's body/sender/count observation. C needs only observations; it has no observer log. Publish selected evidence and results here after each probe, without uploading full logs or private session data automatically. At a failure, identify **local acceptance detection -> quest ID -> displayed title -> stock send -> remote receipt**; do not infer a transport failure before checking the sender's earlier stages. Both direction rows must pass before moving to remaining acceptance cases, then completion.
 
@@ -257,7 +268,7 @@ Data2 81313377FF1759FAC6D53A2CE69F0505AB355E89FDA1136046B85CF342EFD759
 
 1. **Documentation checkpoint:** today's A pass is preserved above, and this checkpoint includes the corresponding diagnostic-3 source. Overlapping trace/testing/plan documents have been consolidated and removed. No more quest acceptance is needed for the current local result; A can exit normally.
 2. **Release checkpoint complete:** test.2 is published using the exact A-tested DLL, with refreshed docs/version and passing package tests. The public download's ZIP/DLL hashes and version were verified independently. No original game file, installed DLL or test.1 asset was changed. Use this immutable Release asset; any different future DLL requires a new local A gameplay pass before B installation.
-3. **Current next gameplay milestone: remote acceptance in both directions.** Install the exact Release package on B; C installs nothing. Confirm A/B identical hashes and fresh READY diagnostic 3. Verify all six manual-chat recipient observations. A accepts one natural quest; require one correctly titled, ordinarily attributed automatic message on B and C. Record it, then repeat with B acting and A/C receiving. Update the record above and preserve logs. Only when both directions pass, continue with remaining host/joiner and negative-control cases. A stock remote handoff with no visible receipt narrows failure to remote delivery; no handoff narrows it to sender/recipient emission. Do not infer either from a missing line alone.
+3. **Remote acceptance checkpoint:** Both directions passed remote receipt. The recorded sender logs show one automatic send per acceptance. Receiver-side exact counts remain unreported.
 4. **Check acceptance negatives and unsupported variant.** C accepts while A/B only observe: no automatic observer messages. Opening/rejecting an offer, loading/rejoining, replication and unrelated starts must not announce. Test the exact named-child variant through normal play when available; no state reset.
 5. **Then trace one successful local turn-in.** Keep completion logging-only until actor, successful outcome and title are proven. If it remains harder, ship/report the working acceptance event separately and identify the missing completion boundary.
 6. **Add minimal in-process duplicate suppression** based on proven event kind/quest identity and load/rejoin handling. Current consume-once pending acceptance is a useful first guard, not a fully validated event-history policy.
@@ -265,14 +276,14 @@ Data2 81313377FF1759FAC6D53A2CE69F0505AB355E89FDA1136046B85CF342EFD759
 
 | Required multiplayer case | Result |
 | --- | --- |
-| A accepts -> B and vanilla C receive one correct message attributed to A | Not tested with diagnostic 3 |
-| B accepts -> A and vanilla C receive one correct message attributed to B | Not tested with diagnostic 3 |
+| A accepts -> B and vanilla C receive one correct message attributed to A | EXODUS received on B/C; one sender call; receiver counts unreported |
+| B accepts -> A and vanilla C receive one correct message attributed to B | LAZARUS RISING received on A/C; one sender call; receiver counts unreported |
 | A successfully turns in -> B/C receive correct completed message | Blocked: completion observer not established |
 | B successfully turns in -> A/C receive correct completed message | Blocked: completion observer not established |
 | C acts -> A/B send no automatic observer messages | Not tested with diagnostic 3 |
 | Load/rejoin -> no replayed/obvious duplicate activity messages | Initial solo loading showed no sends; full case not tested |
 
-For any failure, record the first broken boundary: **acceptance/completion detection -> quest ID -> displayed title -> stock chat send -> remote receipt**. Current feasibility: **local acceptance demonstrated for one path; multiplayer and usable acceptance+completion version remain unproven**.
+For any failure, record the first broken boundary: **acceptance/completion detection -> quest ID -> displayed title -> stock chat send -> remote receipt**. Remote acceptance has been demonstrated in both directions. Acceptance controls and completion remain open.
 
 ## Local development notes
 

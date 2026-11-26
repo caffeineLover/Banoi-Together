@@ -4,6 +4,7 @@
 #include <windows.h>
 #include <Xinput.h>
 #include <bcrypt.h>
+#include <shlobj.h>
 #include <intrin.h>
 #include <cstddef>
 #include <cstdint>
@@ -11,6 +12,7 @@
 #include <cstdarg>
 #include <cstring>
 #include <cwchar>
+#include <string>
 #include "acceptance.h"
 
 template<class C> struct TtlString { C* data; uint32_t length, capacity; };
@@ -386,13 +388,37 @@ static bool PatchSlot(uintptr_t slot, void* expected, void* replacement) {
     DWORD ignored; VirtualProtect(reinterpret_cast<void*>(slot),sizeof(void*),oldProtection,&ignored);
     return true;
 }
-static DWORD WINAPI Initialize(void*) {
-    wchar_t temp[MAX_PATH],path[MAX_PATH];
-    if(GetTempPathW(MAX_PATH,temp)) {
-        _snwprintf_s(path,sizeof(path)/sizeof(path[0]),_TRUNCATE,L"%sDIDEQuestChatPoC.log",temp);
-        logFile=CreateFileW(path,FILE_APPEND_DATA,FILE_SHARE_READ|FILE_SHARE_WRITE,nullptr,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,nullptr);
+static HANDLE OpenLog(const std::wstring& path) {
+    return CreateFileW(path.c_str(),FILE_APPEND_DATA,FILE_SHARE_READ|FILE_SHARE_WRITE,
+        nullptr,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,nullptr);
+}
+static void InitializeLog() {
+    wchar_t role[2]{};
+    DWORD bytes=sizeof(role);
+    const bool assigned=RegGetValueW(HKEY_CURRENT_USER,L"Software\\BanoiTogether",L"TesterRole",RRF_RT_REG_SZ,
+        nullptr,role,&bytes)==ERROR_SUCCESS && bytes==sizeof(role) && role[1]==0 && (role[0]==L'A' || role[0]==L'B');
+    const wchar_t* filename=!assigned ? L"DIDEQuestChatPoC.log" :
+        role[0]==L'A' ? L"DIDEQuestChatPoC-A.log" : L"DIDEQuestChatPoC-B.log";
+    bool desktopLog=false;
+    if(assigned) {
+        PWSTR desktop=nullptr;
+        if(SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Desktop,0,nullptr,&desktop)) && desktop) {
+            logFile=OpenLog(std::wstring(desktop)+L"\\"+filename);
+            desktopLog=logFile!=INVALID_HANDLE_VALUE;
+        }
+        CoTaskMemFree(desktop);
     }
-    Log("Quest Chat diagnostic 3 startup: local mode-0 dialogue/resource/phase acceptance; completion DISABLED; no archive edits; waiting for native modules");
+    if(!desktopLog) {
+        wchar_t temp[MAX_PATH];
+        const DWORD length=GetTempPathW(MAX_PATH,temp);
+        if(length && length<MAX_PATH) logFile=OpenLog(std::wstring(temp)+filename);
+    }
+    Log("Quest Chat diagnostic 4 startup: tester=%s; log=%s; acceptance enabled; completion trace only; waiting for native modules",
+        !assigned ? "unassigned" : role[0]==L'A' ? "A" : "B",
+        desktopLog ? "Desktop" : logFile!=INVALID_HANDLE_VALUE ? "TEMP" : "unavailable");
+}
+static DWORD WINAPI Initialize(void*) {
+    InitializeLog();
     HMODULE game=nullptr,engine=nullptr;
     for(unsigned i=0;i<600 && (!game || !engine);i++) {
         game=GetModuleHandleW(L"gamedll_x64_rwdi.dll"); engine=GetModuleHandleW(L"engine_x64_rwdi.dll");
@@ -453,7 +479,7 @@ static DWORD WINAPI Initialize(void*) {
         PatchSlot(gameBase+0xC7E8B0,reinterpret_cast<void*>(&OnMsgSend),reinterpret_cast<void*>(originalMsgSend));
         Log("FAIL initialization: talk commit observer unavailable; other hooks restored"); return 0;
     }
-    Log("READY diagnostic 3: local Accept/resource/title/phase commit observers and stock chat send installed (6 hooks); completion sends DISABLED; A-only validation pending");
+    Log("READY diagnostic 4: local Accept/resource/title/phase commit observers and stock chat send installed (6 hooks); completion trace only");
     return 0;
 }
 

@@ -10,7 +10,7 @@ try {
         if($Elevated) { throw }
         Write-Host 'Administrator access is required. Approve the Windows UAC prompt to continue.'
         $code=Invoke-DideElevatedRetry -ScriptPath $PSCommandPath -GamePath $target
-        if($code -ne 0) { throw "The elevated installer failed (exit $code). Rerun Install.cmd to see validation details; close the game and check folder permissions." }
+        if($code -ne 0) { throw "The elevated installer failed (exit $code). Rerun Setup Banoi Together.cmd to see validation details; close the game and check folder permissions." }
         Write-Host "SUCCESS: installation completed in the elevated process for $target"
         exit 0
     }

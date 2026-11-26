@@ -114,6 +114,6 @@ jobs:
             }
             gh release upload $env:TEST_TAG $zip $checksum --clobber
           } else {
-            gh release create $env:TEST_TAG $zip $checksum --draft --prerelease --verify-tag --title "Banoi Together $env:TEST_TAG" --notes 'Experimental diagnostic prerelease. Extract the installable ZIP and run Install.cmd with the game closed. See [README](https://github.com/caffeineLover/Banoi-Together/blob/main/README.md) for installation and [PROGRESS](https://github.com/caffeineLover/Banoi-Together/blob/main/PROGRESS.md) for verified results, limitations and test instructions. Completion announcements are disabled.'
+            gh release create $env:TEST_TAG $zip $checksum --draft --prerelease --verify-tag --title "Banoi Together $env:TEST_TAG" --notes 'Experimental diagnostic prerelease. Extract the installable ZIP and run Setup Banoi Together.cmd with the game closed. See [README](https://github.com/caffeineLover/Banoi-Together/blob/main/README.md) for installation and [PROGRESS](https://github.com/caffeineLover/Banoi-Together/blob/main/PROGRESS.md) for verified results, limitations and test instructions. Completion announcements are disabled.'
           }
           if ($LASTEXITCODE -ne 0) { throw 'Draft release preparation failed.' }
