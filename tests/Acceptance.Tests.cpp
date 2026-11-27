@@ -1,5 +1,6 @@
 #include "../poc/acceptance.h"
 #include "../poc/completion.h"
+#include "../poc/player_settings.h"
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
@@ -150,10 +151,28 @@ static void CompletionRejectsStaleOrForeignTalk() {
     tracker.Reset();
     CHECK(!tracker.Commit(talk,1100,0x60).frame);
 }
+static void PlayerSettings() {
+    using namespace BanoiSettings;
+    CHECK(Identity(L'A').role=='P');
+    CHECK(Identity(L'B').role=='H');
+    CHECK(Identity(L'M').role=='M');
+    CHECK(std::wcscmp(Identity(L'H').name,L"Hannah")==0);
+    CHECK(LogName(Identity(L'P'),{2026,11,27,14,30,5,123})==L"DIDEQuestChatPoC-P-Peter-2026-11-27_14-30-05-123Z.log");
+    CHECK(LogName(Identity(L'M'),{2026,11,27,14,30,5,123})==L"DIDEQuestChatPoC-M-Morty-2026-11-27_14-30-05-123Z.log");
+    CHECK(LogHeader(Identity(L'H'),{2026,11,27,14,30,5,123})=="2026-11-27T14:30:05.123Z | Player H (Hannah)\r\n");
+    CHECK(FullscreenKey("# comment\r\nfullscreen_key: 'f8' # comment\r\n")==0x77);
+    CHECK(FullscreenKey("fullscreen_key: K\n")==0x4B);
+    CHECK(FullscreenKey("fullscreen_key: F25\n")==0x7A);
+    CHECK(FullscreenKey("unrelated_key: F2\n")==0x7A);
+    KeyEdge key;
+    CHECK(!key.Update(true,false)); CHECK(!key.Update(true,true));
+    CHECK(!key.Update(false,true)); CHECK(key.Update(true,true)); CHECK(!key.Update(true,true));
+}
 int main() {
     PassportOrdering(); ActiveOwner(); RejectUnrelatedTalk(); RejectUncommittedOrReplicated();
     RejectWrongChild(); CancelAndLocalize(); AcrossThreads();
     CompletionProof(); CompletionRejectsStaleOrForeignTalk();
+    PlayerSettings();
     if(failures) { std::printf("FAIL: %u acceptance assertions\n",failures); return 1; }
     std::puts("PASS: acceptance and completion correlation, ownership, native update identity, localized titles and single consumption");
     return 0;

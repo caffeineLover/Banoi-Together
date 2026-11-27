@@ -15,6 +15,8 @@
 #include <string>
 #include "acceptance.h"
 #include "completion.h"
+#include "display_toggle.h"
+#include "player_settings.h"
 
 template<class C> struct TtlString { C* data; uint32_t length, capacity; };
 static_assert(sizeof(TtlString<wchar_t>) == 16, "Observed x64 string ABI");
@@ -493,37 +495,92 @@ static bool PatchSlot(uintptr_t slot, void* expected, void* replacement) {
     DWORD ignored; VirtualProtect(reinterpret_cast<void*>(slot),sizeof(void*),oldProtection,&ignored);
     return true;
 }
-static HANDLE OpenLog(const std::wstring& path) {
-    return CreateFileW(path.c_str(),FILE_APPEND_DATA,FILE_SHARE_READ|FILE_SHARE_WRITE,
-        nullptr,OPEN_ALWAYS,FILE_ATTRIBUTE_NORMAL,nullptr);
+static std::wstring DesktopFolder() {
+    PWSTR path=nullptr;
+    const auto result=SHGetKnownFolderPath(FOLDERID_Desktop,0,nullptr,&path);
+    const auto folder=SUCCEEDED(result) && path?std::wstring(path):std::wstring{};
+    CoTaskMemFree(path);
+    return folder;
 }
-static void InitializeLog() {
+static void InitializeLog(const std::wstring& desktop) {
     wchar_t role[2]{};
     DWORD bytes=sizeof(role);
-    const bool assigned=RegGetValueW(HKEY_CURRENT_USER,L"Software\\BanoiTogether",L"TesterRole",RRF_RT_REG_SZ,
-        nullptr,role,&bytes)==ERROR_SUCCESS && bytes==sizeof(role) && role[1]==0 && (role[0]==L'A' || role[0]==L'B');
-    const wchar_t* filename=!assigned ? L"DIDEQuestChatPoC.log" :
-        role[0]==L'A' ? L"DIDEQuestChatPoC-A.log" : L"DIDEQuestChatPoC-B.log";
-    bool desktopLog=false;
-    if(assigned) {
-        PWSTR desktop=nullptr;
-        if(SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Desktop,0,nullptr,&desktop)) && desktop) {
-            logFile=OpenLog(std::wstring(desktop)+L"\\"+filename);
-            desktopLog=logFile!=INVALID_HANDLE_VALUE;
+    const auto configured=RegGetValueW(HKEY_CURRENT_USER,L"Software\\BanoiTogether",L"TesterRole",RRF_RT_REG_SZ,
+        nullptr,role,&bytes)==ERROR_SUCCESS && bytes==sizeof(role) && role[1]==0;
+    const auto player=BanoiSettings::Identity(configured?role[0]:0);
+    SYSTEMTIME now{}; GetSystemTime(&now);
+    const BanoiSettings::Stamp stamp{now.wYear,now.wMonth,now.wDay,now.wHour,now.wMinute,now.wSecond,now.wMilliseconds};
+    for(unsigned retry=0;!desktop.empty() && retry<16;++retry) {
+        const auto path=desktop+L"\\"+BanoiSettings::LogName(player,stamp,retry);
+        logFile=CreateFileW(path.c_str(),FILE_APPEND_DATA,FILE_SHARE_READ|FILE_SHARE_DELETE,
+            nullptr,CREATE_NEW,FILE_ATTRIBUTE_NORMAL,nullptr);
+        if(logFile!=INVALID_HANDLE_VALUE || GetLastError()!=ERROR_FILE_EXISTS) break;
+    }
+    if(logFile!=INVALID_HANDLE_VALUE) {
+        const auto header=BanoiSettings::LogHeader(player,stamp);
+        DWORD written=0; WriteFile(logFile,header.data(),static_cast<DWORD>(header.size()),&written,nullptr);
+    }
+    Log("Quest Chat diagnostic 6 startup: tester=%c; log=%s; pid=%lu; waiting for native modules",
+        player.role,logFile!=INVALID_HANDLE_VALUE?"Desktop":"unavailable",GetCurrentProcessId());
+}
+static unsigned ReadFullscreenKey(const std::wstring& desktop) {
+    if(desktop.empty()) return VK_F11;
+    const auto path=desktop+L"\\BanoiTogether.yaml";
+    const auto file=CreateFileW(path.c_str(),GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,
+        nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr);
+    if(file==INVALID_HANDLE_VALUE) return VK_F11;
+    char contents[4096]; DWORD count=0;
+    const auto read=ReadFile(file,contents,sizeof(contents),&count,nullptr);
+    CloseHandle(file);
+    return read && count<sizeof(contents)?BanoiSettings::FullscreenKey({contents,count}):VK_F11;
+}
+using NativeFullscreen=bool(__fastcall*)(void*);
+static NativeFullscreen nativeFullscreen;
+static UINT toggleMessage;
+static BanoiDisplay::Toggle display;
+static LRESULT CALLBACK ToggleOnWindowThread(int code,WPARAM remove,LPARAM data) {
+    if(code==HC_ACTION && remove==PM_REMOVE) {
+        auto& message=*reinterpret_cast<MSG*>(data);
+        if(message.message==toggleMessage) {
+            const auto window=message.hwnd;
+            message.message=WM_NULL;
+            if(window && GetForegroundWindow()==window) {
+                const auto game=Read<void*>(gameBase+0x12822A8);
+                if(display.IsFullscreen(window)) {
+                    Log("display shortcut: restore windowed %s",display.Restore(window)?"OK":"failed");
+                } else if(!game || !nativeFullscreen || nativeFullscreen(game)) {
+                    Log("display shortcut: choose Windowed in the game's video settings before using the borderless toggle");
+                } else {
+                    Log("display shortcut: enter borderless fullscreen %s",display.Enter(window)?"OK":"failed");
+                }
+            }
         }
-        CoTaskMemFree(desktop);
     }
-    if(!desktopLog) {
-        wchar_t temp[MAX_PATH];
-        const DWORD length=GetTempPathW(MAX_PATH,temp);
-        if(length && length<MAX_PATH) logFile=OpenLog(std::wstring(temp)+filename);
+    return CallNextHookEx(nullptr,code,remove,data);
+}
+static void RunFullscreenShortcut(unsigned key) {
+    toggleMessage=RegisterWindowMessageW(L"BanoiTogether.ToggleBorderlessFullscreen");
+    if(!toggleMessage) { Log("display shortcut: could not register window message"); return; }
+    Log("display shortcut: virtual key 0x%02X; windowed <-> borderless fullscreen",key);
+    BanoiSettings::KeyEdge edge;
+    HHOOK hook=nullptr; DWORD hookedThread=0;
+    for(;;) {
+        const auto window=GetForegroundWindow(); DWORD process=0;
+        const auto thread=window?GetWindowThreadProcessId(window,&process):0;
+        if(edge.Update((GetAsyncKeyState(static_cast<int>(key))&0x8000)!=0,thread && process==GetCurrentProcessId())) {
+            if(hookedThread!=thread) {
+                if(hook) UnhookWindowsHookEx(hook);
+                hook=SetWindowsHookExW(WH_GETMESSAGE,ToggleOnWindowThread,nullptr,thread);
+                hookedThread=hook?thread:0;
+            }
+            if(!hook || !PostMessageW(window,toggleMessage,0,0)) Log("display shortcut: game window did not accept the toggle");
+        }
+        Sleep(20);
     }
-    Log("Quest Chat diagnostic 5 startup: tester=%s; log=%s; waiting for native modules",
-        !assigned ? "unassigned" : role[0]==L'A' ? "A" : "B",
-        desktopLog ? "Desktop" : logFile!=INVALID_HANDLE_VALUE ? "TEMP" : "unavailable");
 }
 static DWORD WINAPI Initialize(void*) {
-    InitializeLog();
+    const auto desktop=DesktopFolder();
+    InitializeLog(desktop);
     HMODULE game=nullptr,engine=nullptr;
     for(unsigned i=0;i<600 && (!game || !engine);i++) {
         game=GetModuleHandleW(L"gamedll_x64_rwdi.dll"); engine=GetModuleHandleW(L"engine_x64_rwdi.dll");
@@ -584,7 +641,9 @@ static DWORD WINAPI Initialize(void*) {
         PatchSlot(gameBase+0xC7E8B0,reinterpret_cast<void*>(&OnMsgSend),reinterpret_cast<void*>(originalMsgSend));
         Log("FAIL initialization: talk commit observer unavailable; other hooks restored"); return 0;
     }
-    Log("READY diagnostic 5: acceptance chat, experimental local NPC completion chat, native talk phase trace");
+    nativeFullscreen=reinterpret_cast<NativeFullscreen>(GetProcAddress(engine,"?VideoSettingsIsFullScreen@IGame@@UEAA_NXZ"));
+    Log("READY diagnostic 6: quest chat, native talk trace, and fullscreen shortcut");
+    RunFullscreenShortcut(ReadFullscreenKey(desktop));
     return 0;
 }
 

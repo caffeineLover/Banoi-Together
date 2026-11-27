@@ -21,17 +21,21 @@ try {
     }
     if($choice.Trim() -ne '1') { throw 'Choose 1, 2, or Q.' }
 
-    Write-Host 'Enter your tester role (A or B), or Q to cancel.'
+    Write-Host 'Enter P for Peter, H for Hannah, M for Morty, or Q to cancel.'
     $role=[Console]::ReadLine()
     if($null -eq $role -or $role.Trim() -eq 'Q') { exit 0 }
     $role=$role.Trim().ToUpperInvariant()
-    if($role -cnotin @('A','B')) { throw 'Enter A or B as the tester role.' }
+    $names=@{ P='Peter'; H='Hannah'; M='Morty' }
+    if(-not $names.ContainsKey($role)) { throw 'Enter P, H, or M as the tester role.' }
 
     $desktop=[Environment]::GetFolderPath([Environment+SpecialFolder]::DesktopDirectory)
     if(-not $desktop -or -not [IO.Directory]::Exists($desktop)) { throw 'Windows did not provide an accessible Desktop folder.' }
-    $logPath=Join-Path $desktop "DIDEQuestChatPoC-$role.log"
-    $log=[IO.File]::Open($logPath,[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::Write,[IO.FileShare]::ReadWrite)
-    $log.Dispose()
+    $config=Join-Path $desktop 'BanoiTogether.yaml'
+    if(-not (Test-Path -LiteralPath $config)) {
+        [IO.File]::Copy((Join-Path $PSScriptRoot 'BanoiTogether.yaml'),$config,$false)
+    }
+    $probe=Join-Path $desktop ('BanoiTogether-'+[guid]::NewGuid().ToString('N')+'.tmp')
+    [IO.File]::Open($probe,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None,4096,[IO.FileOptions]::DeleteOnClose).Dispose()
 
     & (Join-Path $PSScriptRoot 'Install.ps1') @options
     if($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -39,8 +43,9 @@ try {
     $key='HKCU:\Software\BanoiTogether'
     if(-not (Test-Path -LiteralPath $key)) { New-Item -Path $key -Force | Out-Null }
     New-ItemProperty -LiteralPath $key -Name TesterRole -PropertyType String -Value $role -Force | Out-Null
-    Write-Host "Setup complete for tester $role. Launch the game to write to this Desktop log:"
-    Write-Host $logPath
+    Write-Host "Setup complete for $($names[$role]) ($role). Launch the game to create a new timestamped Desktop log."
+    Write-Host "Desktop: $desktop"
+    Write-Host "Shortcut settings: $config"
     exit 0
 } catch {
     Write-Host "SETUP FAILED: $($_.Exception.Message)" -ForegroundColor Red

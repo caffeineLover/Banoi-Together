@@ -1,6 +1,6 @@
 # Banoi Together progress and agent handoff
 
-Last updated: **2026-11-26, America/New_York**. This is the authoritative development record. Read it before changing the mod. Installation and build instructions are in [README.md](./README.md).
+Last updated: **2026-11-27, America/New_York**. This is the authoritative development record. Read it before changing the mod. Installation and build instructions are in [README.md](./README.md).
 
 ## Current result
 
@@ -34,6 +34,21 @@ Read-only inspection of the supported `gamedll_x64_rwdi.dll` identified native d
 - The build adds talk group identity to trace output. Native audio/subtitles for vanilla C are still a stock-behavior feasibility check, not an implemented dialogue-sharing change. Morty stays vanilla and reports what he saw and heard.
 - A/B setup verifies the current Windows user's Desktop is writable and displays the full labeled log path. One launcher handles install/upgrade and uninstall. The packaged README is a short player checklist.
 - Verified the native build, acceptance/completion correlation fixtures, proxy forwarding and wrong-build refusal, ZIP content/checksum, and all 18 extracted-package installer tests. Gameplay remains unverified for this payload.
+
+### Test.4 live report and requested features
+
+- [Published test.4](https://github.com/caffeineLover/Banoi-Together/releases/tag/v0.1.0-test.4) contains the exact ZIP identified above. The user reported a successful playtest with two native-dialogue exceptions. Hannah turned in **Lazarus Rising** and A/C did not see its subtitles. Participants with menus open missed the audio and subtitles from quest pickup. The report did not specify whether A/C heard the Lazarus Rising turn-in or which menus were open. Keep the native-dialogue checks open and distinguish the audio and subtitle results.
+- The user also requested a keyboard shortcut for windowed/fullscreen and a way to respec skill points. The installed game exposes a native fullscreen setting; the behavior of Alt+Enter on this installation is unverified. Use the game's display-mode change path if the mod needs its own binding.
+- Respec should refund only the selected character's earned points, preserve level and other progression, and survive save/reload. The [Dead Island Save Editor](https://steffenl.com/projects/dead-island-save-editor/) documents Definitive Edition skill editing and reset as a separate offline option. A native respec action and its save behavior have not been verified for this mod.
+- Follow-up logs confirm A ran diagnostic 5 (`tester=A; log=Desktop`). The supplied B log contains only diagnostic 3 startups, including a live finish for Lazarus Rising (`ACT1A_Car_Repair`, UID 356), and explains the old untagged `%TEMP%` filename. Verify B's test.4 upgrade through the newest `tester=B; log=Desktop` and `READY diagnostic 5` lines after a fresh launch. The supplied logs do not show a mod-generated completion line for this turn-in.
+
+### Test.5 build handoff
+
+- The tester roles are now **P (Peter), H (Hannah), and M (Morty)**. Setup writes the role in the Windows account used to launch the game. Legacy A/B settings map to P/H. Every launch of the new mod creates a fresh, named file on the real Windows Desktop, with the same UTC timestamp in its filename and first line. The logger does not redirect to `%TEMP%`. Morty can install as M for a labeled log or run vanilla as a separate comparison.
+- **F11** switches between a window and borderless fullscreen on the current monitor. Set the game's video mode to Windowed once. The shortcut modifies only the window, preserving the prior style and placement, and runs on the game's window thread. The packaged `BanoiTogether.yaml` is copied to the Desktop if missing, and an existing edited copy is retained on upgrade. Restart the game after changing `fullscreen_key`.
+- DLL SHA-256 `4ED834E15B03F9376052A7869C3FC341EE612D6B6636C742AAE4EEF037C381B7`. ZIP SHA-256 `9BA4911EA518EDFEDDDAC9C0D9BE940E0B343A4E78711051CB723D749C6D7C44`.
+- Offline verification covered player labels and timestamps, key parsing and focus/hold behavior, actual Win32 window size and restoration, the named Desktop log in a temporary test profile, XInput forwarding and wrong-build safety, and 18 extracted-package installer cases. Gameplay and the shortcut on the actual game window remain to be checked. Test.5 carries forward test.4 quest chatter and dialogue observations.
+- In-game respec looks feasible as a mod feature. The binary exposes skill and prerequisite types, but a supported refund/reset operation and persistence are unverified. Trace the ordinary skill allocation path, then validate a full refund on a copied save, including point conservation, dependency and passive-effect removal, and correct state after reload. No respec is included in test.5.
 
 ### Historical shutdown handoff
 

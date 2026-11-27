@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Version='0.1.0-test.4',[string]$DllPath,[string]$OutputDirectory)
+param([string]$Version='0.1.0-test.5',[string]$DllPath,[string]$OutputDirectory)
 $ErrorActionPreference='Stop'
 $repo=Split-Path $PSScriptRoot -Parent
 if($Version -notmatch '^\d+\.\d+\.\d+-test(?:\.\d+)?$') { throw 'Use a test version such as 0.1.0-test.1.' }
@@ -15,7 +15,7 @@ try {
     $template=Join-Path $repo 'package'
     $support=Join-Path $stage 'Support - Do Not Run'
     [IO.Directory]::CreateDirectory($support) | Out-Null
-    foreach($name in @('Setup.ps1','Install.ps1','Uninstall.ps1','Installer.Common.ps1')) {
+    foreach($name in @('Setup.ps1','Install.ps1','Uninstall.ps1','Installer.Common.ps1','BanoiTogether.yaml')) {
         Copy-Item -LiteralPath (Join-Path $template $name) -Destination (Join-Path $support $name)
     }
     Copy-Item -LiteralPath (Join-Path $template 'Setup Banoi Together.cmd') -Destination $stage
