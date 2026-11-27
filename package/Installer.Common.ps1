@@ -2,6 +2,17 @@
 Set-StrictMode -Version 2
 $ErrorActionPreference = 'Stop'
 
+function Initialize-DideTesterDesktop([string]$Desktop,[string]$ConfigTemplate) {
+    if(-not $Desktop -or -not [IO.Directory]::Exists($Desktop)) { throw 'Windows did not provide an accessible Desktop folder.' }
+    $probe=Join-Path $Desktop ('BanoiTogether-'+[guid]::NewGuid().ToString('N')+'.tmp')
+    [IO.FileStream]::new($probe,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None,4096,[IO.FileOptions]::DeleteOnClose).Dispose()
+    $config=Join-Path $Desktop 'BanoiTogether.yaml'
+    if(-not (Test-Path -LiteralPath $config)) {
+        [IO.File]::Copy($ConfigTemplate,$config,$false)
+    }
+    return $config
+}
+
 function Get-DideFullPath([string]$Path) {
     return [IO.Path]::GetFullPath($Path).TrimEnd('\','/')
 }

@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Version='0.1.0-test.5')
+param([string]$Version='0.1.0-test.6')
 $ErrorActionPreference='Stop'
 $repo=Split-Path $PSScriptRoot -Parent
 $builder=Join-Path $repo 'tools\Build-Package.ps1'

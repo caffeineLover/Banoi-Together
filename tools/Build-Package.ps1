@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([string]$Version='0.1.0-test.5',[string]$DllPath,[string]$OutputDirectory)
+param([string]$Version='0.1.0-test.6',[string]$DllPath,[string]$OutputDirectory)
 $ErrorActionPreference='Stop'
 $repo=Split-Path $PSScriptRoot -Parent
 if($Version -notmatch '^\d+\.\d+\.\d+-test(?:\.\d+)?$') { throw 'Use a test version such as 0.1.0-test.1.' }

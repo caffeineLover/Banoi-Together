@@ -79,6 +79,19 @@ function Copy-EntryPoints($Fixture) {
 }
 
 try {
+    Test-Case 'prepares tester Desktop in Windows PowerShell and preserves the edited shortcut' {
+        $f=New-Fixture
+        $desktop=Join-Path $f.Root 'Tester Desktop'
+        [IO.Directory]::CreateDirectory($desktop) | Out-Null
+        $template=Join-Path (Split-Path $common -Parent) 'BanoiTogether.yaml'
+        $config=Initialize-DideTesterDesktop $desktop $template
+        Assert-Equal $config (Join-Path $desktop 'BanoiTogether.yaml') 'Desktop configuration path'
+        Assert-Equal (Get-Content -LiteralPath $config -Raw) (Get-Content -LiteralPath $template -Raw) 'default config copied'
+        Write-TestText $config 'fullscreen_key: F8'
+        Assert-Equal (Initialize-DideTesterDesktop $desktop $template) $config 'upgrade keeps same path'
+        Assert-Equal (Get-Content -LiteralPath $config -Raw) 'fullscreen_key: F8' 'upgrade preserves config'
+        Assert-Equal @(Get-ChildItem -LiteralPath $desktop -Force).Count 1 'write probe removed'
+    }
     Test-Case 'discovers secondary Steam library with spaces/apostrophe' {
         $f=New-Fixture
         $found=@(Find-DideInstallations -SteamRoots @($f.Steam))

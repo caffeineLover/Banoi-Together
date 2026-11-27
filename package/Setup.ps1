@@ -29,13 +29,8 @@ try {
     if(-not $names.ContainsKey($role)) { throw 'Enter P, H, or M as the tester role.' }
 
     $desktop=[Environment]::GetFolderPath([Environment+SpecialFolder]::DesktopDirectory)
-    if(-not $desktop -or -not [IO.Directory]::Exists($desktop)) { throw 'Windows did not provide an accessible Desktop folder.' }
-    $config=Join-Path $desktop 'BanoiTogether.yaml'
-    if(-not (Test-Path -LiteralPath $config)) {
-        [IO.File]::Copy((Join-Path $PSScriptRoot 'BanoiTogether.yaml'),$config,$false)
-    }
-    $probe=Join-Path $desktop ('BanoiTogether-'+[guid]::NewGuid().ToString('N')+'.tmp')
-    [IO.File]::Open($probe,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None,4096,[IO.FileOptions]::DeleteOnClose).Dispose()
+    . (Join-Path $PSScriptRoot 'Installer.Common.ps1')
+    $config=Initialize-DideTesterDesktop $desktop (Join-Path $PSScriptRoot 'BanoiTogether.yaml')
 
     & (Join-Path $PSScriptRoot 'Install.ps1') @options
     if($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

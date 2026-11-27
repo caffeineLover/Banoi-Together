@@ -51,6 +51,12 @@ Read-only inspection of the supported `gamedll_x64_rwdi.dll` identified native d
 - Offline verification covered player labels and timestamps, key parsing and focus/hold behavior, actual Win32 window size and restoration, the named Desktop log in a temporary test profile, XInput forwarding and wrong-build safety, and 18 extracted-package installer cases. Gameplay and the shortcut on the actual game window remain to be checked. Test.5 carries forward test.4 quest chatter and dialogue observations.
 - In-game respec looks feasible as a mod feature. The binary exposes skill and prerequisite types, but a supported refund/reset operation and persistence are unverified. Trace the ordinary skill allocation path, then validate a full refund on a copied save, including point conservation, dependency and passive-effect removal, and correct state after reload. No respec is included in test.5.
 
+### Test.6 installer fix
+
+- Test.5 setup failed after player selection in Windows PowerShell 5.1 because its Desktop write check called a nonexistent six-argument `File.Open` overload. Test.6 uses the supported `FileStream` constructor and runs the write check before copying the default YAML. Existing shortcut settings are preserved.
+- The regression reproduced the exact reported error and passed with the fix. All 19 extracted-package installer tests passed. Test.6 reuses the exact test.5 DLL and still reports `READY diagnostic 6` in-game.
+- Test.6 ZIP SHA-256: `727B6280D44111EBF58552A4B1385B63F21F1A9EC436CE9D8545AAA7D4A5D53F`. Use the [test.6 release ZIP](https://github.com/caffeineLover/Banoi-Together/releases/download/v0.1.0-test.6/DIDE-CoopQuestActivity-v0.1.0-test.6.zip) for the same playtest.
+
 ### Historical shutdown handoff
 
 **2026-11-22, 17:27 local: the user is shutting down the laptop; coordinated testing is paused until the players are ready.** No new remote acceptance observations have been reported. Do not mark either direction passed or assume B has installed the corrected release.

@@ -1,6 +1,8 @@
-# Banoi Together — test.5
+# Banoi Together — test.6
 
 Co-op quest messages and a fullscreen shortcut for Dead Island: Definitive Edition on Steam.
+
+Test.6 fixes the setup error some players saw after choosing their player letter in test.5.
 
 ## Install
 
