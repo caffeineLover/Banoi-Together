@@ -27,13 +27,20 @@ try {
     $role=$role.Trim().ToUpperInvariant()
     if($role -cnotin @('A','B')) { throw 'Enter A or B as the tester role.' }
 
+    $desktop=[Environment]::GetFolderPath([Environment+SpecialFolder]::DesktopDirectory)
+    if(-not $desktop -or -not [IO.Directory]::Exists($desktop)) { throw 'Windows did not provide an accessible Desktop folder.' }
+    $logPath=Join-Path $desktop "DIDEQuestChatPoC-$role.log"
+    $log=[IO.File]::Open($logPath,[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::Write,[IO.FileShare]::ReadWrite)
+    $log.Dispose()
+
     & (Join-Path $PSScriptRoot 'Install.ps1') @options
     if($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     # Save the role in the original user's profile, after any elevated installer returns.
     $key='HKCU:\Software\BanoiTogether'
     if(-not (Test-Path -LiteralPath $key)) { New-Item -Path $key -Force | Out-Null }
     New-ItemProperty -LiteralPath $key -Name TesterRole -PropertyType String -Value $role -Force | Out-Null
-    Write-Host "Setup complete for tester $role. Your Desktop log is DIDEQuestChatPoC-$role.log."
+    Write-Host "Setup complete for tester $role. Launch the game to write to this Desktop log:"
+    Write-Host $logPath
     exit 0
 } catch {
     Write-Host "SETUP FAILED: $($_.Exception.Message)" -ForegroundColor Red

@@ -1,4 +1,5 @@
 #include "../poc/acceptance.h"
+#include "../poc/completion.h"
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
@@ -111,10 +112,49 @@ static void AcrossThreads() {
     }); tick.join();
     Accepted result{}; CHECK(observer.Take(result)); CHECK(result.uid==34);
 }
+static void CompletionProof() {
+    using namespace QuestActivity;
+    const CompletionContext context{0x10,0x20};
+    const CompletionTalk talk{context,0x30,0x40,0x50,352,1000};
+    Accepted accepted{352,"ACT1A_BobbyAmbulatory",L"Bloody Health Service!"};
+    CompletionTracker tracker;
+    tracker.Remember(context,accepted);
+    CHECK(tracker.Observe(talk));
+    auto ticket=tracker.Commit(talk,1100,0x60);
+    CHECK(ticket.frame==0x60);
+    Accepted completed{};
+    CHECK(!tracker.Finish(ticket,context,0x31,352,0x60,completed));
+    CHECK(!tracker.Finish(ticket,context,0x30,352,0x61,completed));
+    CHECK(!tracker.Finish(ticket,{0x10,0x21},0x30,352,0x60,completed));
+    CHECK(tracker.Finish(ticket,context,0x30,352,0x60,completed));
+    CHECK(std::wcscmp(completed.title,L"Bloody Health Service!")==0);
+    CHECK(!tracker.Finish(ticket,context,0x30,352,0x60,completed));
+}
+static void CompletionRejectsStaleOrForeignTalk() {
+    using namespace QuestActivity;
+    const CompletionContext context{0x10,0x20};
+    CompletionTalk talk{context,0x30,0x40,0x50,352,1000};
+    Accepted accepted{352,"ACT1A_BobbyAmbulatory",L"Quest"};
+    CompletionTracker tracker;
+    CHECK(!tracker.Observe(talk));
+    tracker.Remember(context,accepted);
+    CHECK(tracker.Observe(talk));
+    auto other=talk; other.context.actor=0x21;
+    CHECK(!tracker.Commit(other,1100,0x60).frame);
+    CHECK(tracker.Observe(talk));
+    CHECK(!tracker.Commit(talk,62000,0x60).frame);
+    CHECK(tracker.Observe(talk));
+    other=talk; other.resource=0x51;
+    CHECK(!tracker.Commit(other,1100,0x60).frame);
+    CHECK(tracker.Observe(talk));
+    tracker.Reset();
+    CHECK(!tracker.Commit(talk,1100,0x60).frame);
+}
 int main() {
     PassportOrdering(); ActiveOwner(); RejectUnrelatedTalk(); RejectUncommittedOrReplicated();
     RejectWrongChild(); CancelAndLocalize(); AcrossThreads();
+    CompletionProof(); CompletionRejectsStaleOrForeignTalk();
     if(failures) { std::printf("FAIL: %u acceptance assertions\n",failures); return 1; }
-    std::puts("PASS: asynchronous acceptance, exact child identity, committed phase, local ownership, cancellation, localized title and single consumption");
+    std::puts("PASS: acceptance and completion correlation, ownership, native update identity, localized titles and single consumption");
     return 0;
 }

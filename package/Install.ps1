@@ -16,6 +16,5 @@ try {
     }
     if($result.Status -eq 'WhatIf') { Write-Host 'CHECK ONLY: validation passed; nothing was installed.' }
     else { Write-Host "SUCCESS: $($result.Status) $($result.Version) in $($result.GamePath)" }
-    Write-Host 'Completion chat is disabled in this diagnostic. Install on A/B only; C stays vanilla.'
     exit 0
 } catch { Write-Host "INSTALL FAILED: $($_.Exception.Message)" -ForegroundColor Red; exit 1 }

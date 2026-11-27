@@ -7,6 +7,12 @@
 
 int wmain(int argc,wchar_t** argv) {
     if(argc!=3) return 2;
+    // Keep the smoke run independent of the real tester's A/B setting.
+    HKEY scratch=nullptr;
+    if(RegOpenKeyExW(HKEY_CURRENT_USER,L"Environment",0,KEY_READ,&scratch)!=ERROR_SUCCESS ||
+       RegOverridePredefKey(HKEY_CURRENT_USER,scratch)!=ERROR_SUCCESS) {
+        puts("FAIL could not isolate the tester profile"); return 8;
+    }
     SetEnvironmentVariableW(L"TMP",argv[2]); SetEnvironmentVariableW(L"TEMP",argv[2]);
     wchar_t logPath[MAX_PATH]; swprintf_s(logPath,L"%s\\DIDEQuestChatPoC.log",argv[2]);
     HANDLE freshLog=CreateFileW(logPath,GENERIC_WRITE,FILE_SHARE_READ|FILE_SHARE_WRITE,nullptr,CREATE_ALWAYS,0,nullptr);

@@ -6,16 +6,34 @@ Last updated: **2026-11-26, America/New_York**. This is the authoritative develo
 
 **Client A's local acceptance-to-chat test passed for The Lost using diagnostic 3 / `0.1.0-test.2`.** Peter accepted the NPC offer and saw a normal chat line attributed to **Phaedruss**. The log independently confirms local ownership, the same dialogue resource, quest `Steffen_Q1` / UID `372`, the copied displayed title `THE LOST`, a committed offer-phase transition, and exactly one stock sender call with `accepted "THE LOST"`.
 
-**Remote acceptance delivery passed in both directions on diagnostic 3.** A accepted EXODUS and B/C saw the announcement. B accepted LAZARUS RISING and A/C saw the announcement. See the [remote acceptance test record](#remote-acceptance-test-record) for sender evidence and remaining verification. The next gameplay capture is a natural quest turn-in on A. Completion announcements remain disabled.
+**Remote acceptance delivery passed in both directions on diagnostic 3.** A accepted EXODUS and B/C saw the announcement. B accepted LAZARUS RISING and A/C saw the announcement. See the [remote acceptance test record](#remote-acceptance-test-record) for sender evidence. Diagnostic 4 also passed A's acceptance retest and captured a turn-in for the same quest. Completion announcements remain disabled.
 
-### Test.3 installer and next capture
+### Test.3 installer and live capture
 
 Built `dist/DIDE-CoopQuestActivity-v0.1.0-test.3.zip` locally. The single `Setup Banoi Together.cmd` launcher offers install/upgrade and uninstall. Supporting files are in `Support - Do Not Run`. Setup saves A/B in the Windows account that launched it. Diagnostic 4 opens `DIDEQuestChatPoC-A.log` or `DIDEQuestChatPoC-B.log` on that account's Windows Desktop and identifies the tester in the startup line. An inaccessible Desktop falls back to the labeled file in `%TEMP%`.
 
 - DLL SHA-256: `00F700C4BC8DDCE961B2FAB64904F63CE7C6046776642233DFDFD104A0FF19FF`
 - ZIP SHA-256: `63B5331A7570B5529867C29D87EF96ACF32B227E5A025157526C7BBF678CB504`
 - Offline checks passed: x64 build, acceptance correlation, XInput forwarding and wrong-build refusal, package checksum and contents, launcher quit, and 18 extracted-package installer cases.
-- Next on A: install test.3, check the Desktop log for `tester=A`, `log=Desktop`, and `READY diagnostic 4`, then verify one normal local acceptance announcement with the new DLL. Capture one natural quest turn-in and record the exact displayed title, local time, and observed outcome. Capture uses the existing finish observer. Local causation and the completion title path still need to be established before sending completion chat. B can upgrade after the local acceptance check on A. Test.3 has not yet been run in the game.
+- A's Desktop log confirms `tester=A`, `log=Desktop`, and `READY diagnostic 4`. A accepted **BLOODY HEALTH SERVICE!** (`ACT1A_BobbyAmbulatory`, UID 352) at tick `352915296`. It sent one `accepted` line with two remote handoffs. The user reported that B/C saw acceptance and turn-in.
+- At tick `352955875`, about 40.6 seconds after acceptance, the same quest reached state 2 in manager mode 0 with stack `g+7BBF6C g+7BA8BB g+7C770A g+7C1EDE g+12EEA1`. This is a turn-in trace with no mod completion chat. Startup finished callbacks in the same log used manager mode 3. That distinguishes the captured turn-in from these startup callbacks but does not establish the local actor or displayed title for arbitrary turn-ins.
+- B reported no log. Receipt of A's announcement does not establish B's installed build. Check B's Desktop and `%TEMP%` for the labeled or legacy log and inspect the newest startup header. If setup needs to be rerun, choose B and launch Steam from the same Windows account.
+
+### Combined test.4 scope and native dialogue research
+
+The user wants one build and co-op playtest covering acceptance, completion, host/join and replay checks, and shared NPC conversations. A and B are modded. C stays vanilla and should hear the game's own dialogue audio and see its native subtitles. The initiating player keeps control of dialogue choices, and listening must leave the other players' quest progression alone.
+
+Read-only inspection of the supported `gamedll_x64_rwdi.dll` identified native dialogue replication in `BaseDialogPlayerDI`. Its field registration at `0x000BEEB0` registers the replicated dialogue (`+0xCC`), current action (`+0xD0`), and timestamp (`+0xDC`), along with dialogue timing and last action start time. A separate registration at `0x006A6AD0` registers `m_RepliDialogPlayer` with the engine's `f:REPLICATE;` flag. Native subtitle components and a `m_WithoutSubtitles` field also exist. These are leads for finding the stock receive/playback path. They do not establish which quest conversations reach a vanilla peer, or whether the receiver plays the same audio and subtitles without making the observer a quest participant.
+
+`0x000BF890` reads the replicated dialogue and action, resolves them to local objects, and applies replicated timing after a timestamp check. This is evidence for native receive-side dialogue state reconstruction. Audio, subtitles, and candidate selection for quest offers are still unverified. Check the vanilla receiver for one naturally available NPC conversation and record audio, subtitles, choice ownership, and quest state. Continue tracing the turn-in actor and displayed title from the diagnostic-4 capture before enabling completion chat.
+
+### Test.4 build handoff
+
+- Local build: `dist/DIDE-CoopQuestActivity-v0.1.0-test.4.zip` (diagnostic 5). DLL SHA-256 `8BB2E1AA65D98D3AE8B504CA0DFB80E243EDEEF1CA1E673EA5A8F0ABB9883C92`. ZIP SHA-256 `ED3810C61D1241B11E97876F9465C9876EE6EAB382601E378AFCE5A8B2C25C99`.
+- Experimental completion sends require a quest accepted and titled in the current session, a recent locally owned non-offer talk with the matching speaker and resource, phase commit, and a finish on the same native quest-update frame. The finish must match the quest UID and name. A captured title can be consumed once. Other paths remain trace-only. Root finalization at `0x007BA8AC` and finish at `0x007BA8BB` provide the common native update-frame check. The native gating path still needs live verification.
+- The build adds talk group identity to trace output. Native audio/subtitles for vanilla C are still a stock-behavior feasibility check, not an implemented dialogue-sharing change. Morty stays vanilla and reports what he saw and heard.
+- A/B setup verifies the current Windows user's Desktop is writable and displays the full labeled log path. One launcher handles install/upgrade and uninstall. The packaged README is a short player checklist.
+- Verified the native build, acceptance/completion correlation fixtures, proxy forwarding and wrong-build refusal, ZIP content/checksum, and all 18 extracted-package installer tests. Gameplay remains unverified for this payload.
 
 ### Historical shutdown handoff
 

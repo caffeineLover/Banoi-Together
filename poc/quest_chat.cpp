@@ -1,5 +1,5 @@
 // Diagnostic experiment. Read ../PROGRESS.md for native evidence and live results.
-// Completion observation is logging only until local causation is proven.
+// Experimental completion chat requires a locally owned NPC turn-in.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <Xinput.h>
@@ -14,6 +14,7 @@
 #include <cwchar>
 #include <string>
 #include "acceptance.h"
+#include "completion.h"
 
 template<class C> struct TtlString { C* data; uint32_t length, capacity; };
 static_assert(sizeof(TtlString<wchar_t>) == 16, "Observed x64 string ABI");
@@ -43,7 +44,10 @@ static thread_local Acceptance* currentAcceptance;
 static thread_local unsigned* currentChatHandoffs;
 static SRWLOCK pendingLock=SRWLOCK_INIT;
 static QuestActivity::Tracker pending;
-static void SendAccepted(const wchar_t* title);
+static SRWLOCK completionLock=SRWLOCK_INIT;
+static QuestActivity::CompletionTracker completion;
+static thread_local QuestActivity::CompletionTicket turnIn;
+static void SendQuestMessage(const wchar_t* verb,const wchar_t* title);
 
 static void Log(const char* format, ...) {
     char body[1600], line[1800];
@@ -72,11 +76,33 @@ static void Utf8(const wchar_t* text, char (&output)[1024]) {
 }
 
 // Identical actor lookup to the mode-0 menu (3FA7E7-3FA848).
-static uintptr_t LocalActor() {
+static uintptr_t GameSession() {
     const auto game=Read<uintptr_t>(gameBase+0x12822A8);
-    const auto session=Read<uintptr_t>(game+0x4A0);
+    return Read<uintptr_t>(game+0x4A0);
+}
+static uintptr_t LocalActor(uintptr_t session) {
     const auto holder=Read<uintptr_t>(session+0xC0);
     return holder && Read<uintptr_t>(holder+0x60)?Read<uintptr_t>(holder+0x68):0;
+}
+static uintptr_t LocalActor() { return LocalActor(GameSession()); }
+static QuestActivity::CompletionContext CompletionContext() {
+    if(Read<uint32_t>(gameBase+0x1326E98)!=0) return {};
+    const auto session=GameSession();
+    return {session,LocalActor(session)};
+}
+static void ReportAccepted(const QuestActivity::Accepted& accepted) {
+    const auto context=CompletionContext();
+    AcquireSRWLockExclusive(&completionLock);
+    completion.Remember(context,accepted);
+    ReleaseSRWLockExclusive(&completionLock);
+    SendQuestMessage(L"accepted",accepted.title);
+}
+static void ResetCompletionOnLoad() {
+    if(Read<uint32_t>(gameBase+0x1326E98)==0) return;
+    turnIn={};
+    AcquireSRWLockExclusive(&completionLock);
+    completion.Reset();
+    ReleaseSRWLockExclusive(&completionLock);
 }
 static QuestActivity::Tracker PendingSnapshot() {
     AcquireSRWLockShared(&pendingLock); const auto copy=pending; ReleaseSRWLockShared(&pendingLock); return copy;
@@ -104,13 +130,32 @@ static bool InNativeQuestUpdate() {
     }
     return false;
 }
+// Same root update calls phase finalize at 7BA8A6 and then reports quest finish
+// at 7BA8B6. The unwound stack pointer identifies the common update frame.
+static uintptr_t QuestUpdateFrame(uintptr_t returnOffset) {
+    CONTEXT context{};
+    RtlCaptureContext(&context);
+    for(unsigned depth=0;depth<24 && context.Rip && context.Rsp;++depth) {
+        if(context.Rip==gameBase+returnOffset) return context.Rsp;
+        DWORD64 base=0;
+        if(const auto function=RtlLookupFunctionEntry(context.Rip,&base,nullptr)) {
+            PVOID data=nullptr;
+            DWORD64 establisher=0;
+            RtlVirtualUnwind(UNW_FLAG_NHANDLER,base,context.Rip,function,&context,&data,&establisher,nullptr);
+        } else {
+            context.Rip=Read<uintptr_t>(context.Rsp);
+            context.Rsp+=sizeof(uintptr_t);
+        }
+    }
+    return 0;
+}
 static void SendPending() {
     if(!NormalPendingContext()) return;
     QuestActivity::Accepted accepted{};
     AcquireSRWLockExclusive(&pendingLock); const auto send=pending.Take(accepted); ReleaseSRWLockExclusive(&pendingLock);
     if(!send) return;
     Log("acceptance detection: CONFIRMED mode-0 local offer and native commit; quest identification: %s uid=%u",accepted.name,accepted.uid);
-    SendAccepted(accepted.title);
+    ReportAccepted(accepted);
 }
 
 // Read-only equivalents of C6EB0/C7A30; bounded traversal, no engine calls.
@@ -179,6 +224,7 @@ static bool CopySelectedQuest(void* screen, char (&name)[256]) {
 // GameDI callback invoked by sub_007BA680 after its active-state write.
 __declspec(noinline) static void __fastcall OnQuestStarted(void* game, void* quest) {
     const auto returnAddress=reinterpret_cast<uintptr_t>(_ReturnAddress());
+    ResetCompletionOnLoad();
     TraceQuest("started",quest,returnAddress);
     auto scope=currentAcceptance;
     if(scope && !scope->committed && returnAddress==gameBase+0x7BA78A &&
@@ -210,24 +256,66 @@ __declspec(noinline) static void __fastcall OnQuestStarted(void* game, void* que
 }
 
 __declspec(noinline) static void __fastcall OnQuestFinished(void* game, void* quest) {
-    TraceQuest("finished (LOCAL CAUSE UNPROVEN; NO CHAT)",quest,reinterpret_cast<uintptr_t>(_ReturnAddress()));
+    const auto caller=reinterpret_cast<uintptr_t>(_ReturnAddress());
+    const auto address=reinterpret_cast<uintptr_t>(quest);
+    const auto uid=Read<uint32_t>(address+8);
+    const auto context=CompletionContext();
+    QuestActivity::Accepted accepted{};
+    bool matched=false;
+    if(turnIn.frame && turnIn.talk.quest==address) {
+        const auto ticket=turnIn;
+        turnIn={};
+        if(context.Valid() && caller==gameBase+0x7BBF6C && Read<uint32_t>(address+0x3C)==2) {
+            const auto frame=QuestUpdateFrame(0x7BA8BB);
+            AcquireSRWLockExclusive(&completionLock);
+            matched=completion.Finish(ticket,context,address,uid,frame,accepted);
+            ReleaseSRWLockExclusive(&completionLock);
+        }
+    }
+    char name[256]{};
+    matched=matched && CopyString(Read<TtlString<char>>(address+0x10),name) && strcmp(accepted.name,name)==0;
+    TraceQuest(matched?"finished (LOCAL TURN-IN MATCH)":"finished (LOCAL CAUSE UNPROVEN; NO CHAT)",quest,caller);
     originalFinished(game,quest);
+    ResetCompletionOnLoad();
     NormalPendingContext();
+    if(matched && CompletionContext()==context) SendQuestMessage(L"completed",accepted.title);
+}
+
+static void ObserveTurnIn(uintptr_t phase,uintptr_t quest) {
+    if(Read<uint32_t>(phase+0xBC)!=1 || Read<uint32_t>(quest+0x3C)!=1) return;
+    const auto context=CompletionContext();
+    if(!context.Valid()) return;
+    const auto actor=context.actor;
+    const auto dialog=Read<uintptr_t>(actor+0xEC8)?Read<uintptr_t>(actor+0xED0):0;
+    if(!dialog || !Read<uintptr_t>(dialog+0x78) || Read<uintptr_t>(dialog+0x80)!=actor) return;
+    const auto speaker=Read<uintptr_t>(phase+0x140)?Read<uintptr_t>(phase+0x148):0;
+    if(!speaker || !Read<uintptr_t>(dialog+0x50) || Read<uintptr_t>(dialog+0x58)!=speaker) return;
+    const auto group=Read<uintptr_t>(phase+0x168);
+    const auto resource=Read<uintptr_t>(dialog+0x70);
+    if(!resource || (GroupDialog(group,8)!=resource && GroupDialog(group,9)!=resource) || GroupDialog(group,10)) return;
+    const auto uid=Read<uint32_t>(quest+8);
+    const QuestActivity::CompletionTalk evidence{context,quest,phase,resource,uid,GetTickCount64()};
+    AcquireSRWLockExclusive(&completionLock);
+    const auto observed=completion.Observe(evidence);
+    ReleaseSRWLockExclusive(&completionLock);
+    if(observed) Log("turn-in: locally owned non-offer NPC dialogue observed for quest uid=%u phase=%p",uid,reinterpret_cast<void*>(phase));
 }
 
 static bool __fastcall OnTalkCheck(void* phase) {
-    const auto ready=originalTalkCheck(phase);
     const auto address=reinterpret_cast<uintptr_t>(phase);
     const auto quest=Read<uintptr_t>(address+0x70);
+    ObserveTurnIn(address,quest);
+    const auto ready=originalTalkCheck(phase);
     if(ready && Read<uint32_t>(quest+0x3C)==1 && InterlockedIncrement(&talkSamples)<=128) {
         const auto speaker=Read<uintptr_t>(address+0x140)?Read<uintptr_t>(address+0x148):0;
         const auto player=LocalActor();
         const auto dialog=player && Read<uintptr_t>(player+0xEC8)?Read<uintptr_t>(player+0xED0):0;
         const auto participant=dialog && Read<uintptr_t>(dialog+0x78)?Read<uintptr_t>(dialog+0x80):0;
-        Log("TRACE talk ready (NOT ACTOR PROOF ALONE) questUid=%u phase=%p flags131=%02X speaker=%p speakerRaw2a0=%p speakerRaw2a8=%u localDialog=%p participant=%p localActor=%p",
+        char group[256]{}; CopyString(Read<TtlString<char>>(address+0xF0),group);
+        Log("TRACE talk ready questUid=%u phase=%p flags131=%02X speaker=%p speakerRaw2a0=%p speakerRaw2a8=%u localDialog=%p participant=%p localActor=%p group=%s",
             Read<uint32_t>(quest+8),phase,Read<unsigned char>(address+0x131),reinterpret_cast<void*>(speaker),
             reinterpret_cast<void*>(Read<uintptr_t>(speaker+0x2A0)),Read<uint32_t>(speaker+0x2A8),
-            reinterpret_cast<void*>(dialog),reinterpret_cast<void*>(participant),reinterpret_cast<void*>(player));
+            reinterpret_cast<void*>(dialog),reinterpret_cast<void*>(participant),reinterpret_cast<void*>(player),group);
     }
     if(ready && NormalPendingContext() && Read<uint32_t>(quest+0x3C)==1) {
         const auto snapshot=PendingSnapshot();
@@ -260,8 +348,21 @@ static void __fastcall OnTalkFinalize(void* phase) {
     const auto before=Read<uint32_t>(address+0xBC);
     const auto normalUpdate=InNativeQuestUpdate();
     originalTalkFinalize(phase);
-    if(!NormalPendingContext()) return;
     const auto after=Read<uint32_t>(address+0xBC);
+    if(normalUpdate && before==1 && after==2 && Read<uint32_t>(Read<uintptr_t>(address+0x70)+0x3C)==1) {
+        const auto context=CompletionContext();
+        AcquireSRWLockShared(&completionLock);
+        const auto candidate=completion.Candidate();
+        ReleaseSRWLockShared(&completionLock);
+        if(context.Valid() && candidate.context==context && candidate.phase==address && candidate.quest==Read<uintptr_t>(address+0x70)) {
+            const auto frame=QuestUpdateFrame(0x7BA8AC);
+            AcquireSRWLockExclusive(&completionLock);
+            turnIn=completion.Commit(candidate,GetTickCount64(),frame);
+            ReleaseSRWLockExclusive(&completionLock);
+            Log("turn-in: local NPC phase committed for quest uid=%u rootUpdate=%u",candidate.uid,turnIn.frame?1u:0u);
+        }
+    }
+    if(!NormalPendingContext()) return;
     AcquireSRWLockExclusive(&pendingLock);
     const auto matched=pending.Commit(address,before,after,LocalActor(),normalUpdate && Read<uint32_t>(gameBase+0x1326E98)==0);
     ReleaseSRWLockExclusive(&pendingLock);
@@ -280,7 +381,7 @@ __declspec(noinline) static void __fastcall OnMsgSend(void* game, unsigned recip
     originalMsgSend(game,recipient,data,size);
 }
 
-static void SendAccepted(const wchar_t* title) {
+static void SendQuestMessage(const wchar_t* verb,const wchar_t* title) {
     if(!title[0]) { Log("FAIL title resolution: displayed title was unavailable"); return; }
     auto game=Read<uintptr_t>(gameBase+0x12822A8);
     auto session=Read<uintptr_t>(game+0x4A0);
@@ -290,7 +391,7 @@ static void SendAccepted(const wchar_t* title) {
     auto context=reinterpret_cast<void*(__fastcall*)(void*)>(getLocal)(reinterpret_cast<void*>(session));
     if(!context) { Log("FAIL chat send: session returned no local-player context"); return; }
     wchar_t message[300];
-    _snwprintf_s(message, sizeof(message)/sizeof(message[0]), _TRUNCATE, L"accepted \"%s\"", title);
+    _snwprintf_s(message, sizeof(message)/sizeof(message[0]), _TRUNCATE, L"%ls \"%ls\"", verb,title);
     TtlString<wchar_t> text{message, static_cast<uint32_t>(wcslen(message)), static_cast<uint32_t>(wcslen(message))};
     char utf8[1024]; Utf8(message, utf8);
     Log("chat send: calling stock sub_0011E940, SayAll mode 0, message=%s", utf8);
@@ -357,7 +458,11 @@ static void __fastcall OnButton(void* screen, void* control) {
     currentAcceptance=&scope;
     originalButton(screen, control);
     currentAcceptance=previous;
-    if(scope.committed) SendAccepted(scope.title);
+    if(scope.committed) {
+        QuestActivity::Accepted accepted{};
+        accepted.uid=scope.uid; strcpy_s(accepted.name,scope.quest); wcscpy_s(accepted.title,scope.title);
+        ReportAccepted(accepted);
+    }
     else Log("FAIL acceptance detection: supported Accept handler returned without a scoped native commit");
 }
 
@@ -413,7 +518,7 @@ static void InitializeLog() {
         const DWORD length=GetTempPathW(MAX_PATH,temp);
         if(length && length<MAX_PATH) logFile=OpenLog(std::wstring(temp)+filename);
     }
-    Log("Quest Chat diagnostic 4 startup: tester=%s; log=%s; acceptance enabled; completion trace only; waiting for native modules",
+    Log("Quest Chat diagnostic 5 startup: tester=%s; log=%s; waiting for native modules",
         !assigned ? "unassigned" : role[0]==L'A' ? "A" : "B",
         desktopLog ? "Desktop" : logFile!=INVALID_HANDLE_VALUE ? "TEMP" : "unavailable");
 }
@@ -479,7 +584,7 @@ static DWORD WINAPI Initialize(void*) {
         PatchSlot(gameBase+0xC7E8B0,reinterpret_cast<void*>(&OnMsgSend),reinterpret_cast<void*>(originalMsgSend));
         Log("FAIL initialization: talk commit observer unavailable; other hooks restored"); return 0;
     }
-    Log("READY diagnostic 4: local Accept/resource/title/phase commit observers and stock chat send installed (6 hooks); completion trace only");
+    Log("READY diagnostic 5: acceptance chat, experimental local NPC completion chat, native talk phase trace");
     return 0;
 }
 
