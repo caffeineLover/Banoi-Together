@@ -77,9 +77,9 @@ jobs:
           if-no-files-found: error
 
   draft-release:
-    # test.2 through test.4 use separately verified packages uploaded by hand.
+    # test.2 through test.5 use separately verified packages uploaded by hand.
     # CI still verifies their source and keeps its own build as an artifact.
-    if: github.event_name == 'push' && github.ref_type == 'tag' && !contains(fromJSON('["v0.1.0-test.2","v0.1.0-test.3","v0.1.0-test.4"]'), github.ref_name)
+    if: github.event_name == 'push' && github.ref_type == 'tag' && !contains(fromJSON('["v0.1.0-test.2","v0.1.0-test.3","v0.1.0-test.4","v0.1.0-test.5"]'), github.ref_name)
     needs: build
     runs-on: windows-2022
     permissions:
