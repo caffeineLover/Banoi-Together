@@ -1,3 +1,4 @@
+# Banoi Together config format version: 1
 # Fullscreen shortcut. Use F1-F24, one letter, or one digit.
 # Close and relaunch the game after changing this setting.
 fullscreen_key: F11
